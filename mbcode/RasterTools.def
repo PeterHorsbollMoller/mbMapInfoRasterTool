@@ -1,0 +1,47 @@
+
+Declare Method ADVMergeAsMRR
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "MergeAsMRR"
+	( strInputFilePaths() As String		'List of input raster/grid files to merge
+	, ByVal strOutputFilePath As String	'Path and Name of output MRR file
+	) As String
+
+Declare Method ADVMergeAs
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "MergeAs"
+	( strInputFilePaths() As String			'List of input raster/grid files to merge
+	, ByVal strOutputFilePath As String		'Path and Name of output MRR file
+	, ByVal strOutputRasterDriverID As String	'Raster Driver ID for output raster format, f.x. MI_MRR or MI_GeoTiff_IMG
+	) As String
+
+Declare Method ADVGetCellAreaAboveThreshold
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "GetCellAreaAboveThreshold"
+	( ByVal inputFile As String
+	, ByVal fieldIndex As Integer
+	, ByVal bandIndex As Integer
+	, ByVal threshold As Float
+	) As Float
+
+Declare Method ADVContinuousToClassifiedMRR
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "ContinuousToClassifiedMRR"
+	( ByVal strInputFilePath As String
+	, ByVal strOutputFilePath As String
+	) As String
+
+Declare Method ADVRegionInspection
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RegionInspection"
+	( ByVal strInTABFilePath As String
+	, strInRasterFilesPath() As String
+	, ByVal strOutTABFilePath As String
+	, ByVal bMinimumValue As Logical
+	, ByVal bMaximumValue As Logical
+	, ByVal bAverageValue As Logical
+	, ByVal bMedianValue As Logical
+	, ByVal bNumCells As Logical
+	, ByVal bNumNullCells As Logical
+	, ByVal bCoefficientOfVariance As Logical
+	, ByVal bRange As Logical
+	, ByVal bStandardDeviation As Logical
+	, ByVal bSumOfCells As Logical
+	, ByVal bLowerQuartile As Logical
+	, ByVal bUpperQuartile As Logical
+	, ByVal bInterQuartileRange As Logical
+	) As String

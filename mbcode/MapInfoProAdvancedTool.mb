@@ -1,0 +1,624 @@
+'*******************************************************************************
+'**   Created by Peter Horsbøll Møller, Pitney Bowes Software
+'** 	Program:
+'** 	Modul:
+'**
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Enums.def"
+Include "Icons.def"
+Include "Menu.def"
+'**default constants...
+Include "Library\Defaults.def"
+Include "Library\MI_ICONS_X64.def"
+Include "Library\RibbonElements.def"
+
+Define xProgram 		"MapInfo Raster Tool"
+Define xProgramMenu		"MapInfo Raster Tool"
+Define xVersion 		"1.5.2"
+Define xYear			"2017"
+Define xAddToMenuBar	FALSE
+
+Define FILE_INI			ApplicationDirectory$() & "MapInfoRasterTool" & ".ini"
+Define FILE_DBG			ApplicationDirectory$() & "MapInfoRasterTool" & ".dbg"
+'Define FILE_DLL		ApplicationDirectory$() & xProgram & ".dll"
+Define FILE_PAD			GetFolderPath$(FOLDER_MI_PREFERENCE) & xProgram & ".btp"
+
+'-------------------------------------
+Include "Library\ARRAYLib.def"
+Include "Library\CONFIGFILELib.def"
+Include "Library\DEBUGLib.def"
+Include "Library\ERRORLib.def"
+Include "Library\FILELib.def"
+Include "Library\MAPPERLib.def"
+Include "Library\ProgramInfo.def"
+Include "Library\RIBBONLib.def"
+Include "Library\STRINGLib.def"
+Include "Library\TABLELib.def"
+
+Include "RasterTools.def"
+
+'-----------------------------------------------------------------------------------------
+Declare Sub Main
+Declare Sub MENUBuildRibbonInterface
+Declare Sub MENUReadConfigFile
+Declare Sub EndProgram
+Declare Sub EndHandler
+
+Declare Sub MENUMergeFilesInFolderTIF
+Declare Sub MENUMergeFilesInFolderFLOATTIF
+Declare Sub MENUMergeFilesInFolderThreeTIF
+
+Declare Sub MENUCalculateAreaAboveThreshold
+Declare Sub MENUClassifyAsMRR
+Declare Sub MENURegionStatistics
+
+Declare Function MENUGetFileExtensionFromRasterDriverID(ByVal sRasterDriverID As String) As String
+
+Dim	msDefaultPath As String,
+	msOutputRasterDriverID As String
+'**********************************************************************************************''
+'**   Created by Peter Horsbøll Møller, Pitney Bowes Software
+'
+'**********************************************************************************************''
+Sub Main
+
+OnError GoTo ErrorOccured
+
+	'***Initializing ApplicationInfo
+	Call PRGISetApplicationName(xProgram)
+	Call PRGISetApplicationVersion(xVersion)
+	Call PRGISetApplicationCopyrightYear(xYear)
+	Call PRGISetApplicationDevelopedBy("Peter Horsbøll Møller")
+	Call PRGISetApplicationImageUri(MI_IMG_RAS_MERGE_16)
+
+	'***Enabling Debug if file exists
+	Call DEBUGEnableByFile(FILE_DBG)
+
+	Alter Menu ID 4 Add
+		"Merge TIF files in folder..."
+			HelpMsg ""
+			Calling MENUMergeFilesInFolderTIF,
+		"Merge float.TIF files in folder..."
+			HelpMsg ""
+			Calling MENUMergeFilesInFolderFLOATTIF,
+		"Merge 10m, 20m, og 60m.TIF files in folder..."
+			HelpMsg ""
+			Calling MENUMergeFilesInFolderThreeTIF,
+		"Calculate area above threshold..."
+			HelpMsg ""
+			Calling MENUCalculateAreaAboveThreshold,
+		"Classify as MRR..."
+			HelpMsg ""
+			Calling MENUClassifyAsMRR,
+		"Region Statistics..."
+			HelpMsg ""
+			Calling MENURegionStatistics
+
+	If SystemInfo(SYS_INFO_MAPINFO_INTERFACE) = MIINTERFACE_RIBBON Then
+		Call MENUBuildRibbonInterface
+	End If
+
+	Call MENUReadConfigFile
+	Call RBNNotificationShow(PRGIGetApplicationName(), "Input Path: " & msDefaultPath & lf & "Output Raster Format: " & msOutputRasterDriverID, Notify_Info, 10000)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "Main")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUBuildRibbonInterface
+
+Dim	nCtrlIdx As Integer
+
+OnError GoTo ErrorOccured
+
+	nCtrlIdx = RBNGroupAddButton("mergeMergeTIF", "Merge TIF files in folder", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge TIF raster files from a selected folder", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderTIF")
+	End If
+	nCtrlIdx = RBNGroupAddButton("mergeMergeFloatTIF", "Merge float.TIF files in folder", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge float.TIF raster files from a selected folder", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderFLOATTIF")
+	End If
+	nCtrlIdx = RBNGroupAddButton("mergeMergeThreeTIF", "Merge 10m, 20m, og 60m.TIF files in folder", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge 10m, 20m and 60m raster files from a selected folder", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderThreeTIF")
+	End If
+
+	nCtrlIdx = RBNGroupAddButton("calculateArea", "Calculate area above threshold", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you calculate the area of a raster file where the value is above a certain value", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_CALCULATOR_16, MI_IMG_RAS_CALCULATOR_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUCalculateAreaAboveThreshold")
+	End If
+
+	nCtrlIdx = RBNGroupAddButton("classifyAsMRR", "Classify as MRR", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you classify a raster file into a number of fixed classes", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_CLASSFRECLASSF_16, MI_IMG_RAS_CLASSFRECLASSF_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUClassifyAsMRR")
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUBuildRibbonInterface")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUReadConfigFile
+
+OnError GoTo ErrorOccured
+
+	msDefaultPath	= CONFIGReadKey(FILE_INI, "INPUTFILES", "DEFAULT_PATH")
+	If msDefaultPath = "" Then
+		msDefaultPath = ApplicationDirectory$()
+	End If
+
+	msOutputRasterDriverID = CONFIGReadKey(FILE_INI, "OUTPUTFILES", "FORMAT")
+	If msOutputRasterDriverID = "" Then
+		msOutputRasterDriverID = "MI_MRR"
+	End If
+ 	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUReadConfigFile")
+	Call ERRShow()
+
+End Sub
+
+'****************************************
+'**   Created by Peter Horsbøll Møller, Pitney Bowes Software
+'**   Ending MapBasic application
+'****************************************
+Sub EndProgram
+
+OnError GoTo ErrorOccured
+
+	End Program
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "EndProgram")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub EndHandler
+
+OnError GoTo ErrorOccured
+
+	If SystemInfo(SYS_INFO_MAPINFO_INTERFACE) = MIINTERFACE_RIBBON Then
+		Call RBNEndHandler
+	End If
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "EndHandler")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUMergeFilesInFolderTIF
+
+Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile As String,
+	nNumFiles, nNumFolders As Integer
+
+OnError GoTo ErrorOccured
+
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	If sFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
+
+	sMergedFile = FileSaveAsDlg(sFolder, arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID), "Select path and name of merged raster file...")
+	If sMergedFile = "" Then
+		Exit Sub
+	End If
+
+	nNumFiles = FILEFindFilesInFolder(sFolder, "*.tif")
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no .tif files!"
+		Exit Sub
+	End If
+
+	Redim arrFileNames(nNumFiles)
+	nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no .tif files!"
+		Exit Sub
+	End If
+
+	sResultFile = ADVMergeAs(arrFileNames, sMergedFile, msOutputRasterDriverID)
+	If sResultFile = "" Then
+		Exit Sub
+	End If
+
+	Call RBNNotificationShow("Merging rasters", "The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderTIF")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUMergeFilesInFolderFLOATTIF
+
+Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile As String,
+	nNumFiles, nNumFolders As Integer
+
+OnError GoTo ErrorOccured
+
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	If sFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
+
+	'***Name the resulting file as the folderfollowed by " 10 m", " 20 m", "60 m"
+	sMergedFile = FileSaveAsDlg(sFolder, arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID), "Select path and name of merged raster file...")
+	If sMergedFile = "" Then
+		Exit Sub
+	End If
+
+	nNumFiles = FILEFindFilesInFolder(sFolder, "*float.tif")
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no .tif files!"
+		Exit Sub
+	End If
+
+	Redim arrFileNames(nNumFiles)
+	nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no .tif files!"
+		Exit Sub
+	End If
+
+	sResultFile = ADVMergeAs(arrFileNames, sMergedFile, msOutputRasterDriverID)
+	If sResultFile = "" Then
+		Exit Sub
+	End If
+
+	Call RBNNotificationShow("Merging rasters", "The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderFLOATTIF")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUMergeFilesInFolderThreeTIF
+
+Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile, sFileSearch As String,
+	nNumFiles, nNumFolders, i As Integer
+
+OnError GoTo ErrorOccured
+
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	If sFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
+
+	'**Loop 3 times to find the 10, 20 and 60 meter raster files and merge these
+	For i = 1 to 3
+		Do Case i
+			Case 1
+				sFileSearch	= "*_10m.tif"
+				sMergedFile	= FILEAddBackSlash(sFolder) & arrFolders(nNumFolders) & "_10m." & MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID)
+			Case 2
+				sFileSearch	= "*_20m.tif"
+				sMergedFile	= FILEAddBackSlash(sFolder) & arrFolders(nNumFolders) & "_20m." & MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID)
+			Case 3
+				sFileSearch	= "*_60m.tif"
+				sMergedFile	= FILEAddBackSlash(sFolder) & arrFolders(nNumFolders) & "_60m." & MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID)
+		End Case
+
+		Call DEBUGPrint ("Merging " & sFileSearch & " raster files...")
+
+		nNumFiles = FILEFindFilesInFolder(sFolder, sFileSearch)
+		If nNumFiles > 0 Then
+			Redim arrFileNames(nNumFiles)
+			nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+			If nNumFiles > 0 Then
+				Call DEBUGPrint ("   Found " & nNumFiles & " raster files...")
+				Call DEBUGPrint ("1: " & arrFileNames(1))
+				Call DEBUGPrint ("Saving as " & sMergedFile)
+				sResultFile = ADVMergeAs(arrFileNames, sMergedFile, msOutputRasterDriverID)
+				If sResultFile = "" Then
+					Exit Sub
+				End If
+				Call RBNNotificationShow("Merging rasters", "The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+			Else
+				Print "The specified folder contains no " & sFileSearch & " files!"
+			End If
+		Else
+			Print "The specified folder contains no " & sFileSearch & " files!"
+		End If
+	Next
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderThreeTIF")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUCalculateAreaAboveThreshold
+
+Dim	fCellArea As Float,
+	sRasterFile As String
+
+OnError GoTo ErrorOccured
+
+	sRasterFile	= FileOpenDlg(msDefaultPath, "", "MRR", "Select Raster to calculate area for...")
+	If sRasterFile = "" Then
+		Exit Sub
+	End If
+
+	fCellArea = ADVGetCellAreaAboveThreshold(sRasterFile, 0, 0, 19)
+	Note "Total Cell Area = " & FormatNumber$(fCellArea) & " sq m"
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUCalculateAreaAboveThreshold")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUClassifyAsMRR
+
+Dim	sInputFilePath, sOutputFilePath As String
+
+OnError GoTo ErrorOccured
+
+	sInputFilePath	= FileOpenDlg(msDefaultPath, "", "MRR", "Select Raster to calculate area for...")
+	If sInputFilePath = "" Then
+		Exit Sub
+	End If
+
+	sOutputFilePath	= FileSaveAsDlg(PathToDirectory$(sInputFilePath), "Classified", "MRR", "Select path and name of classified MRR...")
+	If sOutputFilePath = "" Then
+		Exit Sub
+	End If
+
+	sOutputFilePath	= ADVContinuousToClassifiedMRR(sInputFilePath, sOutputFilePath)
+	If sOutputFilePath = "" Then
+		Exit Sub
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUClassifyAsMRR")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENURegionStatistics
+
+Dim	bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNullCells  As Logical,
+	bCoefficientOfVariance, bRange, bStandardDeviation, bSumOfCells, bLowerQuartile, bUpperQuartile, bInterQuartileRange As Logical,
+	sFile, sType, sFolder, sInputTABFilePath, sOutputTABFilePath, arrRasterFilePaths(), arrTempRasterFile(1), sTempFile, sTempFilePrev, sTemp As String,
+	nNumFiles, nFile As Integer
+
+OnError GoTo ErrorOccured
+
+	sFile 	= FileOpenDlg(msDefaultPath, "", "*.*", "Select a single grid file in the folder you want to use...")
+	If sFile = "" Then
+		Exit Sub
+	End If
+	sFolder	= PathToDirectory$(sFile)
+	sType 	= Right$(sFile, 4)
+
+	nNumFiles = FILEFindFilesInFolder(sFolder, "*" & sType)
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no " & sType & " files!"
+		Exit Sub
+	End If
+
+	Redim arrRasterFilePaths(nNumFiles)
+	nNumFiles = FILEGetFindFilesFileNames(arrRasterFilePaths())
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no " & sType & " files!"
+		Exit Sub
+	End If
+
+	sInputTABFilePath	= FileOpenDlg("", "", "TAB", "Select table to update with region statistics...")
+	If sInputTABFilePath = "" Then
+		Exit Sub
+	End If
+
+	sOutputTABFilePath = Left$(sInputTABFilePath, Len(sInputTABFilePath) - 4) & " Region Inspection.tab"
+
+	sOutputTABFilePath = FileSaveAsDlg(PathToDirectory$(sOutputTABFilePath), PathToFileName$(sOutputTABFilePath), "TAB", "Select path and name of new table with region statistics...")
+	If sOutputTABFilePath = "" Then
+		Exit Sub
+	End If
+
+	bMinimumValue			= TRUE
+	bMaximumValue			= TRUE
+	bAverageValue			= TRUE
+	bMedianValue			= TRUE
+	bNumCells				= TRUE
+	bNumNullCells			= TRUE
+	bCoefficientOfVariance	= TRUE
+	bRange					= TRUE
+	bStandardDeviation		= TRUE
+	bSumOfCells				= TRUE
+	bLowerQuartile			= TRUE
+	bUpperQuartile			= TRUE
+	bInterQuartileRange		= TRUE
+
+	For nFile = 1 To nNumFiles
+		If nFile = 1 Then
+			sTempFile = sInputTABFilePath
+		Else
+			sTempFile = sTempFilePrev
+		End If
+		If nFile = nNumFiles Then
+			sTempFilePrev	=  sOutputTABFilePath
+		Else
+			sTempFilePrev	= TempFileName$("")
+		End If
+
+		arrTempRasterFile(1)	= arrRasterFilePaths(nFile)
+		Call DEBUGPrint (nFile & ": " & PathToFileName$(sTempFile) & " -> " & PathToFileName$(sTempFilePrev) & " (" & PathToFileName$(arrTempRasterFile(1)) & ")")
+		sTemp = ADVRegionInspection( sTempFile, arrTempRasterFile, sTempFilePrev
+									, bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNullCells
+									, bCoefficientOfVariance, bRange, bStandardDeviation, bSumOfCells, bLowerQuartile, bUpperQuartile, bInterQuartileRange)
+		If sTemp = "" Then
+			Print "Failed to do Region Statistics using " & PathToFileName$(arrTempRasterFile(1))
+		End If
+	Next
+
+	If NOT sOutputTABFilePath = "" Then
+		Open Table sOutputTABFilePath
+		Browse * From PathToTableName$(sOutputTABFilePath)
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENURegionStatistics")
+	Call ERRShow()
+
+End Sub
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function MENUGetFileExtensionFromRasterDriverID(ByVal sRasterDriverID As String) As String
+
+Dim	sExtension As String
+
+OnError GoTo ErrorOccured
+
+'MI_MRR				Multi-Resolution Raster				.mrr
+'MI_Encom_Float_GRD		Encom Float Grid					.grd
+'MI_VerticalMapper_GRD	Vertical Mapper Grid				.grd
+'MI_VerticalMapper_GRC	Vertical Mapper Classified Grid		.grc
+'MI_Surfer_Binary_GRD	Surfer Binary Grid					.grd
+'MI_GeoTiff_IMG			GeoTiff Image					.tif
+'MI_ERMapper_ERS_GRD		ERMapper ERS Grid				.ers
+'MI_ESRI_GRD			ESRI Grid							.adf
+'MI_BandInterleaved_BIL	Band Interleaved Image (by line)		.bil
+'MI_BandInterleaved_BIP	Band Interleaved Image (by pixel)		.bip
+'MI_BandInterleaved_BSQ	Band Interleaved Image (sequential)	.bsq
+'MI_ESRI_ASCII_GRD		ESRI ASCII Grid					.asc
+'MI_Surfer_ASCII_GRD		Surfer ASCII Grid				.grd
+'MI_GDAL_GENERIC		GDAL Default Format					.grd
+
+	Do Case sRasterDriverID
+		Case "MI_MRR"
+			sExtension = "MRR"
+		Case "MI_Encom_Float_GRD"
+			sExtension = "grd"
+		Case "MI_VerticalMapper_GRD"
+			sExtension = "grd"
+		Case "MI_VerticalMapper_GRC"
+			sExtension = "grc"
+		Case "MI_Surfer_Binary_GRD"
+			sExtension = "grd"
+		Case "MI_GeoTiff_IMG"
+			sExtension = "tif"
+		Case "MI_ERMapper_ERS_GRD"
+			sExtension = "ers"
+		Case "MI_ESRI_GRD"
+			sExtension = "adf"
+		Case "MI_BandInterleaved_BIL"
+			sExtension = "bil"
+		Case "MI_BandInterleaved_BIP"
+			sExtension = "bip"
+		Case "MI_BandInterleaved_BSQ"
+			sExtension = "bsq"
+		Case "MI_ESRI_ASCII_GRD"
+			sExtension = "asc"
+		Case "MI_Surfer_ASCII_GRD"
+			sExtension = "grd"
+		Case "MI_GDAL_GENERIC"
+			sExtension = "grd"
+	End Case
+
+	MENUGetFileExtensionFromRasterDriverID = sExtension
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUGetFileExtensionFromRasterDriverID")
+	Call ERRShow()
+
+End Function

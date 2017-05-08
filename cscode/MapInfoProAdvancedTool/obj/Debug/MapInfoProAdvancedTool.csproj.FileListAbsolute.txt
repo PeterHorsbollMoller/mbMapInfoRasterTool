@@ -1,0 +1,5 @@
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.dll
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.pdb
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\MapInfoProAdvancedTool.dll
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\MapInfoProAdvancedTool.pdb
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csprojResolveAssemblyReference.cache
