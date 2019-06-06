@@ -17,8 +17,8 @@ Include "Library\RibbonElements.def"
 
 Define xProgram 		"MapInfo Raster Tool"
 Define xProgramMenu		"MapInfo Raster Tool"
-Define xVersion 		"1.5.2"
-Define xYear			"2017"
+Define xVersion 		"1.6.0"
+Define xYear			"2019"
 Define xAddToMenuBar	FALSE
 
 Define FILE_INI			ApplicationDirectory$() & "MapInfoRasterTool" & ".ini"
@@ -48,8 +48,10 @@ Declare Sub EndProgram
 Declare Sub EndHandler
 
 Declare Sub MENUMergeFilesInFolderTIF
+Declare Sub MENUMergeFilesInFolderASCAsMRR
 Declare Sub MENUMergeFilesInFolderFLOATTIF
 Declare Sub MENUMergeFilesInFolderThreeTIF
+Declare Sub MENUMergeFilesInFoldersASCMRR
 
 Declare Sub MENUCalculateAreaAboveThreshold
 Declare Sub MENUClassifyAsMRR
@@ -81,12 +83,18 @@ OnError GoTo ErrorOccured
 		"Merge TIF files in folder..."
 			HelpMsg ""
 			Calling MENUMergeFilesInFolderTIF,
+		"Merge ASC files in folder as MRR..."
+			HelpMsg ""
+			Calling MENUMergeFilesInFolderASCAsMRR,
 		"Merge float.TIF files in folder..."
 			HelpMsg ""
 			Calling MENUMergeFilesInFolderFLOATTIF,
 		"Merge 10m, 20m, og 60m.TIF files in folder..."
 			HelpMsg ""
 			Calling MENUMergeFilesInFolderThreeTIF,
+		"Merge ASC files in folders as MRRs..."
+			HelpMsg ""
+			Calling MENUMergeFilesInFoldersASCMRR,
 		"Calculate area above threshold..."
 			HelpMsg ""
 			Calling MENUCalculateAreaAboveThreshold,
@@ -129,11 +137,23 @@ OnError GoTo ErrorOccured
 		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
 		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderTIF")
 	End If
+	nCtrlIdx = RBNGroupAddButton("mergeMergeASC", "Merge ASC files in folder", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge ASC raster files into a MRR from a selected folder", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderASCAsMRR")
+	End If
 	nCtrlIdx = RBNGroupAddButton("mergeMergeFloatTIF", "Merge float.TIF files in folder", "", "rasterTab", "Operations")
 	If nCtrlIdx > 0 Then
 		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge float.TIF raster files from a selected folder", "")
 		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
 		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderFLOATTIF")
+	End If
+	nCtrlIdx = RBNGroupAddButton("mergeMergeASCasMRRs", "Merge ASC files in folders as MRR", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge ASC raster files in multiple folder into multiple MRRs from selected folders", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFoldersASCMRR")
 	End If
 	nCtrlIdx = RBNGroupAddButton("mergeMergeThreeTIF", "Merge 10m, 20m, og 60m.TIF files in folder", "", "rasterTab", "Operations")
 	If nCtrlIdx > 0 Then
@@ -275,6 +295,119 @@ OnError GoTo ErrorOccured
 '-------------------------
 ErrorOccured:
 	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderTIF")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUMergeFilesInFolderASCAsMRR
+
+Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile As String,
+	nNumFiles, nNumFolders As Integer
+
+OnError GoTo ErrorOccured
+
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	If sFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
+
+	sMergedFile = FileSaveAsDlg(sFolder, arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID("MI_MRR"), "Select path and name of merged raster file...")
+	If sMergedFile = "" Then
+		Exit Sub
+	End If
+
+	nNumFiles = FILEFindFilesInFolder(sFolder, "*.asc")
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no .asc files!"
+		Exit Sub
+	End If
+
+	Redim arrFileNames(nNumFiles)
+	nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no .asc files!"
+		Exit Sub
+	End If
+
+	sResultFile = ADVMergeAsMRR(arrFileNames, sMergedFile)
+	If sResultFile = "" Then
+		Exit Sub
+	End If
+
+	Call RBNNotificationShow("Merging rasters", "The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderASCAsMRR")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUMergeFilesInFoldersASCMRR
+
+Dim	sMergedFile, sMainFolder, sFolder, arrFolders(), arrFileNames(), sResultFile, sCoordsys As String,
+	nFolder, nNumFiles, nNumFolders As Integer
+
+OnError GoTo ErrorOccured
+
+	sMainFolder = FILEBrowseForFolder("Select folder with folders with raster/grids to merge", msDefaultPath)
+	If sMainFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders = FILEFindFoldersInFolder(sMainFolder, "*")
+	If nNumFolders = 0 Then
+		Note "The selected folder doesn't have any sub folders!"
+		Exit Sub
+	End If
+
+	sCoordsys = ChooseProjection$( "", True)
+	If sCoordsys = "" Then
+		Note "No Coordsys was selected!"
+		Exit Sub
+	End If
+
+	For nFolder = 1 To nNumFolders
+		sFolder	= FILEGetFindFoldersFolderName(nFolder)
+		sMergedFile = sFolder & "." & MENUGetFileExtensionFromRasterDriverID("MI_MRR")
+		Print Time(24) & " " & nFolder & "/" & nNumFolders & " " & sFolder & " Merged into File: " & sMergedFile
+		nNumFiles = FILEFindFilesInFolder(sFolder, "*.asc")
+		If nNumFiles > 0 Then
+			Redim arrFileNames(nNumFiles)
+			nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+
+			'*Creating local tab files for all the raster files
+			Print Time(24) & "  Creating Tab Files"
+			Call ADVCreateTabFilesForRasterFiles(arrFileNames, sCoordsys, TRUE)
+
+			Print Time(24) & "  Merging files: " & sMergedFile
+			sResultFile = ADVMergeAsMRR(arrFileNames, sMergedFile)
+			If sResultFile = "" Then
+				Print "Failed creating file " & nFolder & ": " & sMergedFile
+			Else
+				Call RBNNotificationShow("Merging rasters", nFolder & "/" & nNumFolders & ": The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+			End If
+		End If
+	Next
+	Print Time(24) & " Finished merging files from folders into " & nNumFolders & " MRR files"
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderASCAsMRR")
 	Call ERRShow()
 
 End Sub

@@ -1,3 +1,9 @@
-15:24:40 RBNGroupRemoveControl: Tab not found: rasterTab
-15:24:40 RBNGroupRemoveControl: Tab not found: rasterTab
-15:24:40 RBNGroupRemoveControl: Tab not found: rasterTab
+18:47:01 Tab 4 is named TabLayout but shown as 
+18:47:01 Tab 5 is named rasterTab but shown as 
+18:47:01 Tab 0 is named TabHome but shown as 
+18:47:01 Tab 1 is named TabTable but shown as 
+18:47:01 Tab 2 is named TabMap but shown as 
+18:47:01 Tab 3 is named TabSpatial but shown as 
+18:47:01 Tab 4 is named TabLayout but shown as 
+18:47:01 Tab 5 is named rasterTab but shown as 
+09:42:03 7 Removing control classifyAsMRR of type 1

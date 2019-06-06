@@ -12,6 +12,19 @@ Declare Method ADVMergeAs
 	, ByVal strOutputRasterDriverID As String	'Raster Driver ID for output raster format, f.x. MI_MRR or MI_GeoTiff_IMG
 	) As String
 
+Declare Method ADVCreateTabFileForRasterFile
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "CreateTabFileForRasterFile"
+     ( ByVal strRasterFile As String
+     , ByVal sCoordsys As String
+     , Byval bOverwriteTabFile As Logical
+     )
+Declare Method ADVCreateTabFilesForRasterFiles
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "CreateTabFilesForRasterFiles"
+     ( strRasterFiles() As String
+     , ByVal sCoordsys As String
+     , Byval bOverwriteTabFile As Logical
+     )
+
 Declare Method ADVGetCellAreaAboveThreshold
 	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "GetCellAreaAboveThreshold"
 	( ByVal inputFile As String

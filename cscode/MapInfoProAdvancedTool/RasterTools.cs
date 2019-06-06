@@ -50,6 +50,22 @@ namespace MapInfoProAdvancedTool
             return strOutFilePath;
         }
 
+        public static void CreateTabFileForRasterFile(string strRasterFile, string sCoordsys, bool bOverwriteTabFile)
+        {
+            RasterDatasetFactory.CreateTABFile(strRasterFile, sCoordsys, bOverwriteTabFile, true);
+        }
+
+        public static void CreateTabFilesForRasterFiles(string[] strRasterFiles, string sCoordsys, bool bOverwriteTabFile)
+        {
+            if (strRasterFiles.Length > 0)
+            {
+                foreach (string sRasterFile in strRasterFiles)
+                {
+                    RasterDatasetFactory.CreateTABFile(sRasterFile, sCoordsys, bOverwriteTabFile, true);
+                }
+            }
+        }
+
         public static double GetCellAreaAboveThreshold(string inputFile, int fieldIndex, int bandIndex, double threshold)
         {
             // number of cells over threshold

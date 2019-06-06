@@ -66,7 +66,14 @@ Type POINTAPI  '  8 Bytes
      y As Integer
 End Type
 
-'64-bit number specifying the elapsed time since January 1, 1601, in 100-nanosecond increments
+Type RECTANGLEAPI
+  left As Integer
+  top As Integer
+  right As Integer
+  bottom As Integer
+End Type
+
+'64-bit numbee I can I can r specifying the elapsed time since January 1, 1601, in 100-nanosecond increments
 Type FILETIME
         dwLowDateTime As Integer
         dwHighDateTime As Integer
@@ -202,6 +209,28 @@ Declare Function WAPIGetCursorPosition Lib "user32.dll" Alias "GetCursorPos"
 		) As Integer
 'http://msdn.microsoft.com/en-us/library/windows/desktop/ms648390(v=vs.85).aspx
 
+' Windows API methods
+Declare Function WAPISetParent Lib "User32.dll" Alias SetParent
+		( ByVal hWndChild As IntPtr
+		, ByVal hWndNewParent As IntPtr
+		) As IntPtr
+Declare Function WAPIMoveWindow Lib "User32.dll" Alias MoveWindow
+		( ByVal hWnd As IntPtr
+		, ByVal x As Integer
+		, ByVal y As Integer
+		, ByVal Width As Integer
+		, ByVal Height As Integer
+		, ByVal bRepaint As Logical
+		) As Logical
+Declare Function WAPIShowWindow Lib "User32.dll" Alias ShowWindow
+		( ByVal hWnd As IntPtr
+		, ByVal nCmdShow As Integer
+		) As Logical
+Declare Function WAPIGetClientRect Lib "user32" Alias "GetClientRect"
+		( ByVal hwnd As IntPtr
+		, lpRect As RECTANGLEAPI
+		) As Integer
+
 '-------------------------------------
 'Win32 API Imports local to this module:
 Declare Function WAPIGetPrivateProfileString Lib "KERNEL32.DLL" Alias "GetPrivateProfileStringA"
@@ -317,6 +346,8 @@ Declare Function WAPIGetLastError Lib "kernel32.dll" Alias "GetLastError"
 	() As Integer
 'https://msdn.microsoft.com/en-us/library/windows/desktop/ms679360(v=vs.85).aspx
 
+Declare Function WAPIGetCommandLine Lib "kernel32" Alias "GetCommandLineA" () As String
+'https://msdn.microsoft.com/en-us/library/windows/desktop/ms683156(v=vs.85).aspx
 
 
 
