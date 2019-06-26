@@ -1,9 +1,13 @@
-18:47:01 Tab 4 is named TabLayout but shown as 
-18:47:01 Tab 5 is named rasterTab but shown as 
-18:47:01 Tab 0 is named TabHome but shown as 
-18:47:01 Tab 1 is named TabTable but shown as 
-18:47:01 Tab 2 is named TabMap but shown as 
-18:47:01 Tab 3 is named TabSpatial but shown as 
-18:47:01 Tab 4 is named TabLayout but shown as 
-18:47:01 Tab 5 is named rasterTab but shown as 
-09:42:03 7 Removing control classifyAsMRR of type 1
+08:38:52 Tab 0 is named TabHome but shown as 
+08:38:52 Tab 1 is named TabTable but shown as 
+08:38:52 Tab 2 is named TabMap but shown as 
+08:38:52 Tab 3 is named TabSpatial but shown as 
+08:38:52 Tab 4 is named TabLayout but shown as 
+08:38:52 Tab 5 is named rasterTab but shown as 
+09:24:18 7 Removing control classifyAsMRR of type 1
+09:24:18 6 Removing control calculateArea of type 1
+09:24:18 5 Removing control mergeMergeThreeTIF of type 1
+09:24:18 4 Removing control mergeMergeASCasMRRs of type 1
+09:24:18 3 Removing control mergeMergeFloatTIF of type 1
+09:24:18 2 Removing control mergeMergeASC of type 1
+09:24:18 1 Removing control mergeMergeTIF of type 1

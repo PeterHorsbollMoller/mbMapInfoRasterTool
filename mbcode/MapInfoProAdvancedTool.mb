@@ -17,7 +17,7 @@ Include "Library\RibbonElements.def"
 
 Define xProgram 		"MapInfo Raster Tool"
 Define xProgramMenu		"MapInfo Raster Tool"
-Define xVersion 		"1.6.0"
+Define xVersion 		"1.6.1"
 Define xYear			"2019"
 Define xAddToMenuBar	FALSE
 
@@ -306,7 +306,7 @@ End Sub
 '**********************************************************************************************''
 Sub MENUMergeFilesInFolderASCAsMRR
 
-Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile As String,
+Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile, sCoordsys As String,
 	nNumFiles, nNumFolders As Integer
 
 OnError GoTo ErrorOccured
@@ -336,12 +336,24 @@ OnError GoTo ErrorOccured
 		Exit Sub
 	End If
 
+	sCoordsys = ChooseProjection$( "", True)
+	If sCoordsys = "" Then
+		Note "No Coordsys was selected!"
+		Exit Sub
+	End If
+
+	'*Creating local tab files for all the raster files
+	Print Time(24) & "  Creating Tab Files"
+	Call ADVCreateTabFilesForRasterFiles(arrFileNames, sCoordsys, TRUE)
+
+	Print Time(24) & "  Merging files: " & sMergedFile
 	sResultFile = ADVMergeAsMRR(arrFileNames, sMergedFile)
 	If sResultFile = "" Then
 		Exit Sub
 	End If
 
-	Call RBNNotificationShow("Merging rasters", "The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+	Call RBNNotificationShow("Merging rasters", "The " & FormatNumber$(nNumFiles) & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+	Print Time(24) & " Finished merging " & FormatNumber$(nNumFiles) & " files from folder into a single MRR file"
 
 	Exit Sub
 '-------------------------
@@ -398,11 +410,11 @@ OnError GoTo ErrorOccured
 			If sResultFile = "" Then
 				Print "Failed creating file " & nFolder & ": " & sMergedFile
 			Else
-				Call RBNNotificationShow("Merging rasters", nFolder & "/" & nNumFolders & ": The " & nNumFiles & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
+				Call RBNNotificationShow("Merging rasters", nFolder & "/" & FormatNumber$(nNumFolders) & ": The " & FormatNumber$(nNumFiles) & " input rasters have been merged into " & sResultFile, Notify_Info, 5000)
 			End If
 		End If
 	Next
-	Print Time(24) & " Finished merging files from folders into " & nNumFolders & " MRR files"
+	Print Time(24) & " Finished merging files from folders into " & FormatNumber$(nNumFolders) & " MRR files"
 
 	Exit Sub
 '-------------------------
