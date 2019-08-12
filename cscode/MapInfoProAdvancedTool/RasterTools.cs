@@ -203,5 +203,73 @@ namespace MapInfoProAdvancedTool
 
         }
 
+        public static string RegionInspectionBands(string strInTABFilePath
+                                                , string[] strInRasterFilesPath
+                                                , int fieldIndex
+                                                , int bandIndex
+                                                , string strOutTABFilePath
+                                                , bool bMinimumValue
+                                                , bool bMaximumValue
+                                                , bool bAverageValue
+                                                , bool bMedianValue
+                                                , bool bNumCells
+                                                , bool bNumNullCells
+                                                , bool bCoefficientOfVariance
+                                                , bool bRange
+                                                , bool bStandardDeviation
+                                                , bool bSumOfCells
+                                                , bool bLowerQuartile
+                                                , bool bUpperQuartile
+                                                , bool bInterQuartileRange
+                                                )
+        {
+
+            PolygonStatisticFlags inStatsFlag = new PolygonStatisticFlags
+            {
+                Min = bMinimumValue,
+                Max = bMaximumValue,
+                Mean = bAverageValue,
+                Median = bMedianValue,
+                TotalCells = bNumCells,
+                TotalNullCells = bNumNullCells,
+                CoefficientOfVariance = bCoefficientOfVariance,
+                Range = bRange,
+                StandardDeviation = bStandardDeviation,
+                SumOfCells = bSumOfCells,
+                LowerQuartile = bLowerQuartile,
+                UpperQuartile = bUpperQuartile,
+                InterQuartileRange = bInterQuartileRange
+            };
+
+            RasterAnalysis.GetPolygonStatistics(strInTABFilePath, strInRasterFilesPath, strOutTABFilePath, inStatsFlag, (uint)fieldIndex, (uint)bandIndex);
+
+            return strOutTABFilePath;
+
+        }
+
+        public static string RasterExportBand(    string strInRasterFilePath
+                                                 , int fieldIndex
+                                                 , int bandIndex
+                                                 , string strOutRasterFilePath
+                                                 , string strOutputRasterDriver
+                                                 )
+        {
+
+            // Specify FieldBandFilter so that selected Field's AllBands will be converted to form single field output raster
+            // depending upon Driver capabilities
+            var fieldBandFilter = new FieldBandFilter((uint)fieldIndex, (uint)bandIndex);
+            //Setting RasterCreationOptions and RasterFinalizationOptions as null. This will result in default settings read from user's preference file.
+            var apiOptions = new RasterApiOptions(null, null, fieldBandFilter, null);
+            RasterProcessing.Convert(strInRasterFilePath, strOutRasterFilePath, strOutputRasterDriver, apiOptions);
+            
+             return strOutRasterFilePath;
+        }
+
+        public static void RasterDelete(string strInRasterFilePath
+                                                 )
+        {
+            RasterProcessing.Delete(strInRasterFilePath);
+        }
+
     }
 }

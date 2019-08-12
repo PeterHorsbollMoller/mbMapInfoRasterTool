@@ -17,7 +17,7 @@ Include "Library\RibbonElements.def"
 
 Define xProgram 		"MapInfo Raster Tool"
 Define xProgramMenu		"MapInfo Raster Tool"
-Define xVersion 		"1.6.1"
+Define xVersion 		"1.8.1"
 Define xYear			"2019"
 Define xAddToMenuBar	FALSE
 
@@ -56,11 +56,13 @@ Declare Sub MENUMergeFilesInFoldersASCMRR
 Declare Sub MENUCalculateAreaAboveThreshold
 Declare Sub MENUClassifyAsMRR
 Declare Sub MENURegionStatistics
+Declare Sub MENURegionStatisticsBands
 
 Declare Function MENUGetFileExtensionFromRasterDriverID(ByVal sRasterDriverID As String) As String
 
 Dim	msDefaultPath As String,
-	msOutputRasterDriverID As String
+	msOutputRasterDriverID As String,
+	mnNumFields, mnNumBands As Integer
 '**********************************************************************************************''
 '**   Created by Peter Horsbøll Møller, Pitney Bowes Software
 '
@@ -103,7 +105,10 @@ OnError GoTo ErrorOccured
 			Calling MENUClassifyAsMRR,
 		"Region Statistics..."
 			HelpMsg ""
-			Calling MENURegionStatistics
+			Calling MENURegionStatistics,
+		"Region Statistics - multiple bands..."
+			HelpMsg ""
+			Calling MENURegionStatisticsBands
 
 	If SystemInfo(SYS_INFO_MAPINFO_INTERFACE) = MIINTERFACE_RIBBON Then
 		Call MENUBuildRibbonInterface
@@ -202,6 +207,17 @@ OnError GoTo ErrorOccured
 	If msOutputRasterDriverID = "" Then
 		msOutputRasterDriverID = "MI_MRR"
 	End If
+
+	mnNumFields = Val(CONFIGReadKey(FILE_INI, "FIELDSANDBANDS", "NUMFIELDS"))
+	If mnNumFields = 0 Then
+		mnNumFields = 1
+	End If
+	mnNumBands = Val(CONFIGReadKey(FILE_INI, "FIELDSANDBANDS", "NUMBANDS"))
+	If mnNumBands = 0 Then
+		mnNumBands = 1
+	End If
+
+
  	Exit Sub
 '-------------------------
 ErrorOccured:
@@ -612,7 +628,7 @@ Sub MENURegionStatistics
 
 Dim	bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNullCells  As Logical,
 	bCoefficientOfVariance, bRange, bStandardDeviation, bSumOfCells, bLowerQuartile, bUpperQuartile, bInterQuartileRange As Logical,
-	sFile, sType, sFolder, sInputTABFilePath, sOutputTABFilePath, arrRasterFilePaths(), arrTempRasterFile(1), sTempFile, sTempFilePrev, sTemp As String,
+	sFile, sType, sFolder, sInputVectorFile, sOutputTABFilePath, arrRasterFilePaths(), arrTempRasterFile(1), sTempFile, sTempFilePrev, sTemp As String,
 	nNumFiles, nFile As Integer
 
 OnError GoTo ErrorOccured
@@ -637,35 +653,35 @@ OnError GoTo ErrorOccured
 		Exit Sub
 	End If
 
-	sInputTABFilePath	= FileOpenDlg("", "", "TAB", "Select table to update with region statistics...")
-	If sInputTABFilePath = "" Then
+	sInputVectorFile	= FileOpenDlg("", "", "TAB", "Select table to update with region statistics...")
+	If sInputVectorFile = "" Then
 		Exit Sub
 	End If
 
-	sOutputTABFilePath = Left$(sInputTABFilePath, Len(sInputTABFilePath) - 4) & " Region Inspection.tab"
+	sOutputTABFilePath = Left$(sInputVectorFile, Len(sInputVectorFile) - 4) & " Region Inspection.tab"
 
 	sOutputTABFilePath = FileSaveAsDlg(PathToDirectory$(sOutputTABFilePath), PathToFileName$(sOutputTABFilePath), "TAB", "Select path and name of new table with region statistics...")
 	If sOutputTABFilePath = "" Then
 		Exit Sub
 	End If
 
-	bMinimumValue			= TRUE
-	bMaximumValue			= TRUE
-	bAverageValue			= TRUE
-	bMedianValue			= TRUE
-	bNumCells				= TRUE
-	bNumNullCells			= TRUE
-	bCoefficientOfVariance	= TRUE
-	bRange					= TRUE
-	bStandardDeviation		= TRUE
-	bSumOfCells				= TRUE
-	bLowerQuartile			= TRUE
-	bUpperQuartile			= TRUE
-	bInterQuartileRange		= TRUE
+	bMinimumValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "MINIMUM")="0", FALSE, TRUE)		'TRUE
+	bMaximumValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "MAXIMUM")="0", FALSE, TRUE)		'TRUE
+	bAverageValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "AVERAGE")="0", FALSE, TRUE)		'TRUE
+	bMedianValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "MEDIAN")="0", FALSE, TRUE)		'TRUE
+	bNumCells				= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "NUMCELLS")="0", FALSE, TRUE)		'TRUE
+	bNumNullCells			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "NUMNULLCELLS")="0", FALSE, TRUE)		'TRUE
+	bCoefficientOfVariance	= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "COEFFICIENTOFVARIANCE")="0", FALSE, TRUE)		'TRUE
+	bRange				= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "RANGE")="0", FALSE, TRUE)		'TRUE
+	bStandardDeviation		= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "STANDARDDEVIATION")="0", FALSE, TRUE)		'TRUE
+	bSumOfCells			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "SUMOFCELLS")="0", FALSE, TRUE)		'TRUE
+	bLowerQuartile			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "LOWERQUARTILE")="0", FALSE, TRUE)		'TRUE
+	bUpperQuartile			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "UPPERQUARTILE")="0", FALSE, TRUE)		'TRUE
+	bInterQuartileRange		= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "INTERQUARTILERANGE")="0", FALSE, TRUE)		'TRUE
 
 	For nFile = 1 To nNumFiles
 		If nFile = 1 Then
-			sTempFile = sInputTABFilePath
+			sTempFile = sInputVectorFile
 		Else
 			sTempFile = sTempFilePrev
 		End If
@@ -698,6 +714,111 @@ ErrorOccured:
 
 End Sub
 
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENURegionStatisticsBands
+
+Dim	bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNullCells  As Logical,
+	bCoefficientOfVariance, bRange, bStandardDeviation, bSumOfCells, bLowerQuartile, bUpperQuartile, bInterQuartileRange As Logical,
+	sFile, sInputRasterFile, sType, sFolder, sInputVectorFile, sOutputTABFilePath, arrRasterFilePaths(), arrTempRasterFiles(), sTempFile, sTempFilePrev, sTemp As String,
+	nNumFiles, nInputFile, nFile, nField, nBand As Integer
+
+OnError GoTo ErrorOccured
+
+	sInputRasterFile 	= FileOpenDlg(msDefaultPath, "", "*.*", "Select a single grid file in the folder you want to use...")
+'	sInputRasterFile 	= FileOpenDlg(msDefaultPath, "", "*.*", "Select grid file you want to use for inspection...")
+	If sInputRasterFile = "" Then
+		Exit Sub
+	End If
+	sFolder	= PathToDirectory$(sInputRasterFile)
+	sType 	= Right$(sInputRasterFile, 4)
+
+	nNumFiles = FILEFindFilesInFolder(sFolder, "*" & sType)
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no " & sType & " files!"
+		Exit Sub
+	End If
+
+	Redim arrRasterFilePaths(nNumFiles)
+	nNumFiles = FILEGetFindFilesFileNames(arrRasterFilePaths())
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no " & sType & " files!"
+		Exit Sub
+	End If
+
+	sInputVectorFile	= FileOpenDlg("", "", "TAB", "Select vector table to update with region statistics...")
+	If sInputVectorFile = "" Then
+		Exit Sub
+	End If
+
+	sOutputTABFilePath = Left$(sInputVectorFile, Len(sInputVectorFile) - 4) & " Region Inspection.tab"
+
+	sOutputTABFilePath = FileSaveAsDlg(PathToDirectory$(sOutputTABFilePath), PathToFileName$(sOutputTABFilePath), "TAB", "Select path and name of new table with region statistics...")
+	If sOutputTABFilePath = "" Then
+		Exit Sub
+	End If
+
+	bMinimumValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "MINIMUM")="0", FALSE, TRUE)		'TRUE
+	bMaximumValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "MAXIMUM")="0", FALSE, TRUE)		'TRUE
+	bAverageValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "AVERAGE")="0", FALSE, TRUE)		'TRUE
+	bMedianValue			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "MEDIAN")="0", FALSE, TRUE)		'TRUE
+	bNumCells				= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "NUMCELLS")="0", FALSE, TRUE)		'TRUE
+	bNumNullCells			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "NUMNULLCELLS")="0", FALSE, TRUE)		'TRUE
+	bCoefficientOfVariance	= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "COEFFICIENTOFVARIANCE")="0", FALSE, TRUE)		'TRUE
+	bRange				= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "RANGE")="0", FALSE, TRUE)		'TRUE
+	bStandardDeviation		= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "STANDARDDEVIATION")="0", FALSE, TRUE)		'TRUE
+	bSumOfCells			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "SUMOFCELLS")="0", FALSE, TRUE)		'TRUE
+	bLowerQuartile			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "LOWERQUARTILE")="0", FALSE, TRUE)		'TRUE
+	bUpperQuartile			= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "UPPERQUARTILE")="0", FALSE, TRUE)		'TRUE
+	bInterQuartileRange		= IIf(CONFIGReadKey(FILE_INI, "STATISTICS", "INTERQUARTILERANGE")="0", FALSE, TRUE)		'TRUE
+
+	nFile = 0
+	ReDim arrTempRasterFiles(nFile)
+	For nInputFile = 1 To nNumFiles
+		sFile					= PathToFileName$(arrRasterFilePaths(nInputFile))
+		Call DEBUGPrint ("Export Bands from " & arrRasterFilePaths(nInputFile))
+		For nField = 0 To (mnNumFields - 1)
+			For nBand = 0 To (mnNumBands - 1)
+				nFile = nFile + 1
+				ReDim arrTempRasterFiles(nFile)
+				arrTempRasterFiles(nFile)	= PathToDirectory$(TempFileName$("")) & Left$(sFile, Len(sFile) - 4) & "_" & nField & "_" & nBand & "." & MENUGetFileExtensionFromRasterDriverID("MI_MRR")
+
+				Call DEBUGPrint ("  Field " & nField & " Band: " & nBand & ": -> " & arrTempRasterFiles(nFile))
+				sTemp = ADVRasterExportBand(arrRasterFilePaths(nInputFile), nField, nBand, arrTempRasterFiles(nFile), "MI_MRR")
+
+			Next	'Band
+		Next	'Field
+	Next
+
+	Call DEBUGPrint ("Region Inspection: " & Ubound(arrTempRasterFiles) & " raster files...")
+'	sTemp = ADVRegionInspectionBands(sInputVectorFile, arrTempRasterFiles, nField, nBand, sOutputTABFilePath
+	sTemp = ADVRegionInspection(sInputVectorFile, arrTempRasterFiles, sOutputTABFilePath
+							, bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNullCells
+							, bCoefficientOfVariance, bRange, bStandardDeviation, bSumOfCells, bLowerQuartile, bUpperQuartile, bInterQuartileRange)
+	If sTemp = "" Then
+		Print "Failed to do Region Statistics on " & PathToFileName$(sInputRasterFile)
+	End If
+
+	For nFile = 1 To Ubound(arrTempRasterFiles)
+'		Call DEBUGPrint ("Delete Raster: " & PathToFileName$(arrTempRasterFiles(nFile)))
+		Call ADVRasterDelete(arrTempRasterFiles(nFile))
+	Next
+
+	If NOT sOutputTABFilePath = "" Then
+		Open Table sOutputTABFilePath
+		Browse * From PathToTableName$(sOutputTABFilePath)
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENURegionStatisticsBands")
+	Call ERRShow()
+
+End Sub
 
 '**********************************************************************************************''
 'Created by Peter Horsbøll Møller, Pitney Bowes Software

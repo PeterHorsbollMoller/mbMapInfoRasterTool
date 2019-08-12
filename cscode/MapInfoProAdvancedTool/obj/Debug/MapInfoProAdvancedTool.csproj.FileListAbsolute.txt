@@ -3,9 +3,9 @@ D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\cscode\MapInfoProAdvan
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\MapInfoProAdvancedTool.dll
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\MapInfoProAdvancedTool.pdb
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\MapInfoProAdvTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csprojResolveAssemblyReference.cache
-D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csprojResolveAssemblyReference.cache
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csproj.CoreCompileInputs.cache
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.dll
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.pdb
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\MapInfoProAdvancedTool.dll
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\MapInfoProAdvancedTool.pdb
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csprojResolveAssemblyReference.cache

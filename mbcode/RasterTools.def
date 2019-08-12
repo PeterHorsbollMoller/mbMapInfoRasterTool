@@ -58,3 +58,39 @@ Declare Method ADVRegionInspection
 	, ByVal bUpperQuartile As Logical
 	, ByVal bInterQuartileRange As Logical
 	) As String
+
+Declare Method ADVRegionInspectionBands
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RegionInspectionBands"
+	( ByVal strInTABFilePath As String
+	, strInRasterFilesPath() As String
+	, ByVal nField As Integer
+	, ByVal nBand As Integer
+	, ByVal strOutTABFilePath As String
+	, ByVal bMinimumValue As Logical
+	, ByVal bMaximumValue As Logical
+	, ByVal bAverageValue As Logical
+	, ByVal bMedianValue As Logical
+	, ByVal bNumCells As Logical
+	, ByVal bNumNullCells As Logical
+	, ByVal bCoefficientOfVariance As Logical
+	, ByVal bRange As Logical
+	, ByVal bStandardDeviation As Logical
+	, ByVal bSumOfCells As Logical
+	, ByVal bLowerQuartile As Logical
+	, ByVal bUpperQuartile As Logical
+	, ByVal bInterQuartileRange As Logical
+	) As String
+
+Declare Method ADVRasterExportBand
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RasterExportBand"
+	( ByVal strInRasterFilePath As String
+	, ByVal nField As Integer
+	, ByVal nBand As Integer
+	, ByVal strOutTABFilePath As String
+	, ByVal strOutputRasterDriver As String
+	) As String
+
+Declare Method ADVRasterDelete
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RasterDelete"
+	( ByVal strInRasterFilePath As String
+	)
