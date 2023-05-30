@@ -1,9 +1,0 @@
-08:22:02 Delete Raster: 20190514_0_5.MRR
-08:22:02 Delete Raster: 20190514_0_6.MRR
-08:24:43 7 Removing control classifyAsMRR of type 1
-08:24:43 6 Removing control calculateArea of type 1
-08:24:43 5 Removing control mergeMergeThreeTIF of type 1
-08:24:43 4 Removing control mergeMergeASCasMRRs of type 1
-08:24:43 3 Removing control mergeMergeFloatTIF of type 1
-08:24:43 2 Removing control mergeMergeASC of type 1
-08:24:43 1 Removing control mergeMergeTIF of type 1

@@ -1,3 +1,21 @@
+' Declare methods from our own assembly
+Declare Method ADVNew_ProRasterTool
+	Class "MapInfoProAdvancedTool.ProAddIn" Lib "MapInfoProAdvancedTool.dll" Alias Ctor_CreateInstance
+	() As This
+Declare Method ADVInitialize
+	Class "MapInfoProAdvancedTool.ProAddIn" Lib "MapInfoProAdvancedTool.dll" Alias Initialize
+	( ByVal p1 As This
+	, ByVal p2 As RefPtr
+	, ByVal p3 As String
+	)
+Declare Method ADVUnload Class "MapInfoProAdvancedTool.ProAddIn" Lib "MapInfoProAdvancedTool.dll" Alias Unload
+	( ByVal p1 As This
+	)
+Declare Method ADVProcessCommand Class "MapInfoProAdvancedTool.ProAddIn" Lib "MapInfoProAdvancedTool.dll" Alias ProcessCommand
+	( ByVal p1 As This
+	, ByVal command As String
+	) As Logical
+
 
 Declare Method ADVMergeAsMRR
 	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "MergeAsMRR"
@@ -94,3 +112,33 @@ Declare Method ADVRasterDelete
 	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RasterDelete"
 	( ByVal strInRasterFilePath As String
 	)
+
+Declare Method ADVStampFixedGridSize
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "StampFixedGridSize"
+	( ByVal strInputFile As String
+	, ByVal strCoordSystem As String
+	, ByVal strOutputFile As String
+	, ByVal strOutputRasterDriver As String
+	, ByVal OriginX As Float
+	, ByVal OriginY As Float
+	, ByVal GridSizeX As Float
+	, ByVal GridSizeY As Float
+	, ByVal numColumnsX As Integer
+	, ByVal numRowsY As Integer
+ 	, ByVal dataFieldIndex As Integer
+      )
+
+Declare Method ADVExportToASCII
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "ExportToASCII"
+	( ByVal strInFilePath As String
+	, ByVal strOutFilePath As String
+	)
+
+Declare Method ADVRunRasterProcessorUI
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RunRasterProcessorUI"
+	()
+Declare Method ADVRunRasterProcessor
+	Class "MapInfoProAdvancedTool.RasterTools" Lib "MapInfoProAdvancedTool.dll" Alias "RunRasterProcessor"
+	( ByVal inputFile As String
+	)
+

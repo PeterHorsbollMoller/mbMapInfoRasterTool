@@ -17,8 +17,8 @@ Include "Library\RibbonElements.def"
 
 Define xProgram 		"MapInfo Raster Tool"
 Define xProgramMenu		"MapInfo Raster Tool"
-Define xVersion 		"1.8.1"
-Define xYear			"2019"
+Define xVersion 		"2.0.4"
+Define xYear			"2023"
 Define xAddToMenuBar	FALSE
 
 Define FILE_INI			ApplicationDirectory$() & "MapInfoRasterTool" & ".ini"
@@ -41,6 +41,7 @@ Include "Library\TABLELib.def"
 Include "RasterTools.def"
 
 '-----------------------------------------------------------------------------------------
+
 Declare Sub Main
 Declare Sub MENUBuildRibbonInterface
 Declare Sub MENUReadConfigFile
@@ -49,20 +50,39 @@ Declare Sub EndHandler
 
 Declare Sub MENUMergeFilesInFolderTIF
 Declare Sub MENUMergeFilesInFolderASCAsMRR
+Declare Sub MENUMergeFilesInFolderMRRAsMRR
+Declare Sub MENUMergeFilesInFolderAsMRR
+
+Declare Function MENUMergeFilesIntoMRR(	  arrFilesToMerge() As String
+								, ByVal bCreateTABFiles As Logical
+								, ByVal sOutputFile As String
+								) As String
+
 Declare Sub MENUMergeFilesInFolderFLOATTIF
 Declare Sub MENUMergeFilesInFolderThreeTIF
 Declare Sub MENUMergeFilesInFoldersASCMRR
+
 
 Declare Sub MENUCalculateAreaAboveThreshold
 Declare Sub MENUClassifyAsMRR
 Declare Sub MENURegionStatistics
 Declare Sub MENURegionStatisticsBands
 
+Declare Sub MENUStampFixedGridSizeCSV
+Declare Sub MENUStampFixedGridSizeTAB
+Declare Sub MENUSetFixedGridSize(ByVal fGridSizeX As Float, ByVal fGridSizeY As Float)
+
+Declare Sub MENUExportRasterFileToASCII
+Declare Sub MENURunRasterProcessorUI
+
 Declare Function MENUGetFileExtensionFromRasterDriverID(ByVal sRasterDriverID As String) As String
 
-Dim	msDefaultPath As String,
+Dim	msDefaultInputPath, msDefaultOutputPath As String,
 	msOutputRasterDriverID As String,
-	mnNumFields, mnNumBands As Integer
+	mnNumFields, mnNumBands, mnMaxInputFilesInArray As Integer,
+	mfGridSizeX, mfGridSizeY As Float,
+	mMapBasicRasterAddIn As This
+
 '**********************************************************************************************''
 '**   Created by Peter Horsbøll Møller, Pitney Bowes Software
 '
@@ -81,6 +101,12 @@ OnError GoTo ErrorOccured
 	'***Enabling Debug if file exists
 	Call DEBUGEnableByFile(FILE_DBG)
 
+	'**Initiate communication with .NET Assembly
+	Call RBNInitiate
+	mMapBasicRasterAddIn = ADVNew_ProRasterTool()
+	call ADVInitialize(mMapBasicRasterAddIn, theMapInfoApplication, ApplicationName$() )
+
+
 	Alter Menu ID 4 Add
 		"Merge TIF files in folder..."
 			HelpMsg ""
@@ -88,6 +114,9 @@ OnError GoTo ErrorOccured
 		"Merge ASC files in folder as MRR..."
 			HelpMsg ""
 			Calling MENUMergeFilesInFolderASCAsMRR,
+		"Merge files in folder as MRR..."
+			HelpMsg ""
+			Calling MENUMergeFilesInFolderAsMRR,
 		"Merge float.TIF files in folder..."
 			HelpMsg ""
 			Calling MENUMergeFilesInFolderFLOATTIF,
@@ -108,14 +137,26 @@ OnError GoTo ErrorOccured
 			Calling MENURegionStatistics,
 		"Region Statistics - multiple bands..."
 			HelpMsg ""
-			Calling MENURegionStatisticsBands
+			Calling MENURegionStatisticsBands,
+		"Stamp Fixed Grid Size from CSV..."
+			HelpMsg ""
+			Calling MENUStampFixedGridSizeCSV,
+		"Stamp Fixed Grid Size from TAB..."
+			HelpMsg ""
+			Calling MENUStampFixedGridSizeTAB,
+		"Export Raster File to ASCII CSV..."
+			HelpMsg ""
+			Calling MENUExportRasterFileToASCII
+
 
 	If SystemInfo(SYS_INFO_MAPINFO_INTERFACE) = MIINTERFACE_RIBBON Then
 		Call MENUBuildRibbonInterface
 	End If
 
 	Call MENUReadConfigFile
-	Call RBNNotificationShow(PRGIGetApplicationName(), "Input Path: " & msDefaultPath & lf & "Output Raster Format: " & msOutputRasterDriverID, Notify_Info, 10000)
+	Call RBNNotificationShow(PRGIGetApplicationName(), "Input Path: " & msDefaultInputPath & lf & "Output Path: " & msDefaultOutputPath & lf & "Output Raster Format: " & msOutputRasterDriverID, Notify_Info, 10000)
+
+	If RBNRegisterFunctionAsPublic("MENUSetFixedGridSize", "MENUSetFixedGridSize", "Used to set the desired cell size of the raster from the stamp method") Then End If
 
 	Exit Sub
 '-------------------------
@@ -147,6 +188,12 @@ OnError GoTo ErrorOccured
 		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge ASC raster files into a MRR from a selected folder", "")
 		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
 		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderASCAsMRR")
+	End If
+	nCtrlIdx = RBNGroupAddButton("mergeMergeMRR", "Merge files in folder", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Lets you merge raster files into a MRR from a selected folder", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_MERGE_16, MI_IMG_RAS_MERGE_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUMergeFilesInFolderAsMRR")
 	End If
 	nCtrlIdx = RBNGroupAddButton("mergeMergeFloatTIF", "Merge float.TIF files in folder", "", "rasterTab", "Operations")
 	If nCtrlIdx > 0 Then
@@ -181,6 +228,14 @@ OnError GoTo ErrorOccured
 		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENUClassifyAsMRR")
 	End If
 
+	nCtrlIdx = RBNGroupAddButton("executeRasterProcessing", "Raster Processing", "", "rasterTab", "Operations")
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, xProgram, "Run XML RasterProcessing using a XML file", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_SMALL, MI_IMG_RAS_CALCULATOR_16, MI_IMG_RAS_CALCULATOR_32)
+		'Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "ADVRunRasterProcessorUI")
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "MENURunRasterProcessorUI")
+	End If
+
 	Exit Sub
 '-------------------------
 ErrorOccured:
@@ -196,12 +251,24 @@ End Sub
 '**********************************************************************************************''
 Sub MENUReadConfigFile
 
+Dim	sValue As String
+
 OnError GoTo ErrorOccured
 
-	msDefaultPath	= CONFIGReadKey(FILE_INI, "INPUTFILES", "DEFAULT_PATH")
-	If msDefaultPath = "" Then
-		msDefaultPath = ApplicationDirectory$()
+	msDefaultInputPath	= CONFIGReadKey(FILE_INI, "INPUTFILES", "DEFAULT_PATH")
+	If msDefaultInputPath = "" Then
+		msDefaultInputPath = ApplicationDirectory$()
 	End If
+
+	sValue	= CONFIGReadKey(FILE_INI, "INPUTFILES", "MAX_SIZE_FILE_ARRAY")
+	If sValue = "" Then
+		mnMaxInputFilesInArray = 100
+	Else
+		mnMaxInputFilesInArray = Val(sValue)
+	End If
+	mnMaxInputFilesInArray = IIf(mnMaxInputFilesInArray = 0, 100, mnMaxInputFilesInArray)
+
+	msDefaultOutputPath	= CONFIGReadKey(FILE_INI, "OUTPUTFILES", "DEFAULT_PATH")
 
 	msOutputRasterDriverID = CONFIGReadKey(FILE_INI, "OUTPUTFILES", "FORMAT")
 	If msOutputRasterDriverID = "" Then
@@ -252,9 +319,15 @@ Sub EndHandler
 
 OnError GoTo ErrorOccured
 
+	If mMapBasicRasterAddIn <> 0 Then
+		Call ADVUnload(mMapBasicRasterAddIn)
+	End If
 	If SystemInfo(SYS_INFO_MAPINFO_INTERFACE) = MIINTERFACE_RIBBON Then
 		Call RBNEndHandler
 	End If
+
+	mMapBasicRasterAddIn = NULL_PTR
+
 	Exit Sub
 '-------------------------
 ErrorOccured:
@@ -275,14 +348,14 @@ Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile As String,
 
 OnError GoTo ErrorOccured
 
-	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultInputPath)
 	If sFolder = "" Then
 		Exit Sub
 	End If
 
 	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
 
-	sMergedFile = FileSaveAsDlg(sFolder, arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID), "Select path and name of merged raster file...")
+	sMergedFile = FileSaveAsDlg(IIF(msDefaultOutputPath="", sFolder, msDefaultOutputPath), arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID), "Select path and name of merged raster file...")
 	If sMergedFile = "" Then
 		Exit Sub
 	End If
@@ -327,14 +400,14 @@ Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile, sCoordsys A
 
 OnError GoTo ErrorOccured
 
-	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultInputPath)
 	If sFolder = "" Then
 		Exit Sub
 	End If
 
 	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
 
-	sMergedFile = FileSaveAsDlg(sFolder, arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID("MI_MRR"), "Select path and name of merged raster file...")
+	sMergedFile = FileSaveAsDlg(IIF(msDefaultOutputPath="", sFolder, msDefaultOutputPath), arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID("MI_MRR"), "Select path and name of merged raster file...")
 	If sMergedFile = "" Then
 		Exit Sub
 	End If
@@ -384,6 +457,359 @@ End Sub
 'Parameters:
 '
 '**********************************************************************************************''
+Sub MENUMergeFilesInFolderMRRAsMRR
+
+Dim	sMergedFile, sMergedFilterFile, sFolder, arrFolders(), arrFileNames(), arrSubsetFileNames(), arrResultFiles(), sResultFile, sOutputFile, sCoordsys As String,
+	nNumFiles, nNumFilesTotal, nNumOutputFiles, nNumFolders, nFilter, nFile, nCount, nResultFile As Integer,
+	bCreateTABFiles As Logical
+
+OnError GoTo ErrorOccured
+
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultInputPath)
+	If sFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
+
+	sMergedFile = FileSaveAsDlg(IIF(msDefaultOutputPath="", sFolder, msDefaultOutputPath), arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID("MI_MRR"), "Specify path and name of merged raster file...")
+	If sMergedFile = "" Then
+		Exit Sub
+	End If
+
+	bCreateTABFiles = FALSE
+	If Not Ask("Do you want to create TAB files for the MRR files?", "No", "Yes") Then
+		bCreateTABFiles = TRUE
+
+		sCoordsys = ChooseProjection$( "", True)
+		If sCoordsys = "" Then
+			Note "No Coordsys was selected!"
+			Exit Sub
+		End If
+	End If
+
+'	If Ask("Split the merge into 10 by applying a filter like '*0.MRR', '*1.MRR' and so on when finding files?", "Yes", "No") Then
+'		For nFilter = 0 To 9
+'			Print Time(24) & " looking for: " & "*" & Str$(nFilter) & ".mrr in " & sFolder
+'			nNumFiles = FILEFindFilesInFolder(sFolder, "*" & Str$(nFilter) & ".mrr")
+'			If nNumFiles = 0 Then
+'				Print "The specified folder contains no *" & Str$(nFilter) & ".MRR files!"
+'			Else
+'				Redim arrFileNames(nNumFiles)
+'				nNumFiles			= FILEGetFindFilesFileNames(arrFileNames())
+'				nNumFilesTotal		= nNumFilesTotal + nNumFiles
+'
+'				sMergedFilterFile	= Left$(sMergedFile, Len(sMergedFile)- 4) & "_" & Format$(nFilter, "000") & ".mrr"
+'
+'				Print Time(24) & " File 1: " & arrFileNames(1)
+'				Print Time(24) & " File " & nNumFiles & ": " & arrFileNames(nNumFiles)
+'
+'				sOutputFile	= MENUMergeFilesIntoMRR(arrFileNames, bCreateTABFiles, sMergedFilterFile)
+'				If sOutputFile = "" Then
+'					Print "Failed to merge files into " & sMergedFilterFile
+'				Else
+'					nNumOutputFiles	= nNumOutputFiles + 1
+'				End If
+'			End If
+'			Redim arrFileNames(0)
+'		Next
+'
+'		Print Time(24) & " The " & FormatNumber$(nNumFilesTotal) & " input rasters have been merged into " & nNumOutputFiles & " output files"
+'		Call RBNNotificationShow("Merging rasters", "The " & FormatNumber$(nNumFilesTotal) & " input rasters have been merged into " & nNumOutputFiles & " output files", Notify_Info, 5000)
+'
+'	Else
+		nNumFiles = FILEFindFilesInFolder(sFolder, "*.mrr")
+		Print "The specified folder contains " & Str$(nNumFiles) & ".MRR files!"
+		If nNumFiles = 0 Then
+			Note "The specified folder contains no .mrr files!"
+			Exit Sub
+		End If
+
+		If nNumFiles > mnMaxInputFilesInArray Then
+			Redim arrFileNames(mnMaxInputFilesInArray)
+			Print "   Processing the files in batches of " & Str$(Ubound(arrFileNames)) & " files!"
+			For nFile = 1 To nNumFiles
+				nCount	= nCount + 1
+				arrFileNames(nCount) = FILEGetFindFilesFileName(nFile)
+
+				If nCount = Ubound(arrFileNames) or nFile = nNumFiles Then
+					nResultFile	= nResultFile + 1
+					sOutputFile	= Left$(sMergedFile, Len(sMergedFile)- 4) & "_" & Format$(nResultFile, "0000") & ".mrr"
+
+'					Print Time(24) & " " & FormatNumber$(nResultFile) & ": Merging " & FormatNumber$(Ubound(arrFileNames)) & " files into " & sOutputFile
+					Print Time(24) & " " & FormatNumber$(nResultFile) & ". batch ..."
+					Print Time(24) & " Files " & FormatNumber$((nFile - nCount) + 1) & " to " & FormatNumber$(nFile) & " of " & FormatNumber$(nNumFiles)
+					Print Time(24) & " File 1: " & arrFileNames(1)
+					Print Time(24) & " File " & FormatNumber$(nCount) & ": " & arrFileNames(nCount)
+					If nCount <> Ubound(arrFileNames) Then
+						Redim arrFileNames(nCount)
+					End If
+
+					sOutputFile = MENUMergeFilesIntoMRR(arrFileNames, bCreateTABFiles, sOutputFile)
+					If sOutputFile = "" Then
+						Print "Failed merging MRR files into " & sOutputFile
+					Else
+						If Not FileExists(sOutputFile) Then
+							Print "Failed merging MRR files into " & sOutputFile
+						End If
+					End If
+
+'					Print Time(24) & "   " & FormatNumber$(nResultFile) & ": Merged " & FormatNumber$(Ubound(arrFileNames)) & " files from folder into a MRR file: " & sOutputFile
+					nCount = 0
+				End If
+			Next
+			Call RBNNotificationShow("Merging rasters", "The " & FormatNumber$(nNumFiles) & " input rasters have been merged into " & FormatNumber$(nResultFile) & " output files", Notify_Info, 5000)
+			Print Time(24) & " Finished merging " & FormatNumber$(nNumFiles) & " files from folder into into " & FormatNumber$(nResultFile) & " output files"
+		Else
+			Redim arrFileNames(nNumFiles)
+			nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+			If nNumFiles = 0 Then
+				Note "The specified folder contains no .asc files!"
+				Exit Sub
+			End If
+
+			sOutputFile	= MENUMergeFilesIntoMRR(arrFileNames, bCreateTABFiles, sMergedFile)
+			If sOutputFile = "" Then
+				Print "Failed to merge files into " & sResultFile
+				Exit Sub
+			End If
+
+			Call RBNNotificationShow("Merging rasters", "The " & FormatNumber$(nNumFiles) & " input rasters have been merged into " & sOutputFile, Notify_Info, 5000)
+			Print Time(24) & " Finished merging " & FormatNumber$(nNumFiles) & " files from folder into a MRR file: " & sOutputFile
+		End If
+'	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderMRRAsMRR")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUMergeFilesInFolderAsMRR
+
+Dim	sMergedFile, sMergedFilterFile, sInputFile, sFormat, sFolder, arrFolders(), arrFileNames(), arrSubsetFileNames(), arrResultFiles(), sResultFile, sOutputFile, sCoordsys As String,
+	nNumFiles, nNumFilesTotal, nNumOutputFiles, nNumFolders, nFilter, nFile, nCount, nResultFile As Integer,
+	bCreateTABFiles As Logical
+
+OnError GoTo ErrorOccured
+
+	sInputFile	= FileOpenDlg(msDefaultInputPath, "", "*.*", "Select one of the raster/grid files in the folder you want to merge...")
+	If sInputFile = "" Then
+		Exit Sub
+	End If
+
+	sFormat	= FILEGetExtension(sInputFile)
+	sFolder	= PathToDirectory$(sInputFile)
+
+'	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultInputPath)
+	If sFolder = "" Then
+		Exit Sub
+	End If
+
+	nNumFolders	= STRINGSplit(sFolder, "\", arrFolders)
+	sMergedFile	= IIf(arrFolders(nNumFolders)="", arrFolders(nNumFolders-1), arrFolders(nNumFolders))
+
+	sMergedFile = FileSaveAsDlg(IIF(msDefaultOutputPath="", sFolder, msDefaultOutputPath), sMergedFile, "MRR", "Specify path and name of merged raster file...")
+	If sMergedFile = "" Then
+		Exit Sub
+	End If
+
+	bCreateTABFiles = FALSE
+	If Not Ask("Do you want to create TAB files for the " & sFormat & " files?", "No", "Yes") Then
+		bCreateTABFiles = TRUE
+
+		sCoordsys = ChooseProjection$( "", True)
+		If sCoordsys = "" Then
+			Note "No Coordsys was selected!"
+			Exit Sub
+		End If
+	End If
+
+	nNumFiles = FILEFindFilesInFolder(sFolder, "*." & sFormat)
+	Print "The specified folder contains " & Str$(nNumFiles) & "." & sFormat & " files!"
+	If nNumFiles = 0 Then
+		Note "The specified folder contains no ." & sFormat & " files!"
+		Exit Sub
+	End If
+
+	If nNumFiles > mnMaxInputFilesInArray Then
+		Redim arrFileNames(mnMaxInputFilesInArray)
+		Print "   Processing the files in batches of " & Str$(Ubound(arrFileNames)) & " files!"
+		For nFile = 1 To nNumFiles
+			nCount	= nCount + 1
+			arrFileNames(nCount) = FILEGetFindFilesFileName(nFile)
+
+			If nCount = Ubound(arrFileNames) or nFile = nNumFiles Then
+				nResultFile	= nResultFile + 1
+				sOutputFile	= Left$(sMergedFile, Len(sMergedFile)- 4) & "_" & Format$(nResultFile, "0000") & ".MRR"
+
+'				Print Time(24) & " " & FormatNumber$(nResultFile) & ": Merging " & FormatNumber$(Ubound(arrFileNames)) & " files into " & sOutputFile
+				Print Time(24) & " " & FormatNumber$(nResultFile) & ". batch ..."
+				Print Time(24) & " Files " & FormatNumber$((nFile - nCount) + 1) & " to " & FormatNumber$(nFile) & " of " & FormatNumber$(nNumFiles)
+				Print Time(24) & " File 1: " & arrFileNames(1)
+				Print Time(24) & " File " & FormatNumber$(nCount) & ": " & arrFileNames(nCount)
+				If nCount <> Ubound(arrFileNames) Then
+					'**Resizing array of input files to actual number
+					'** - typically done in the last batch where there is fewer files than the maximum for a single merge
+					Redim arrFileNames(nCount)
+				End If
+
+				sOutputFile = MENUMergeFilesIntoMRR(arrFileNames, bCreateTABFiles, sOutputFile)
+				If sOutputFile = "" Then
+					Print "Failed merging " & sFormat & " files into " & sOutputFile
+				Else
+					If Not FileExists(sOutputFile) Then
+						Print "Failed merging " & sFormat & " files into " & sOutputFile
+					End If
+				End If
+
+'				Print Time(24) & "   " & FormatNumber$(nResultFile) & ": Merged " & FormatNumber$(Ubound(arrFileNames)) & " files from folder into a MRR file: " & sOutputFile
+				nCount = 0
+			End If
+		Next
+		Call RBNNotificationShow("Merging rasters", "The " & FormatNumber$(nNumFiles) & " input rasters have been merged into " & FormatNumber$(nResultFile) & " output files", Notify_Info, 5000)
+		Print Time(24) & " Finished merging " & FormatNumber$(nNumFiles) & " files from folder into into " & FormatNumber$(nResultFile) & " output files"
+	Else
+		Redim arrFileNames(nNumFiles)
+		nNumFiles = FILEGetFindFilesFileNames(arrFileNames())
+		If nNumFiles = 0 Then
+			Note "The specified folder contains no ." & sFormat & " files!"
+			Exit Sub
+		End If
+
+		sOutputFile	= MENUMergeFilesIntoMRR(arrFileNames, bCreateTABFiles, sMergedFile)
+		If sOutputFile = "" Then
+			Print "Failed to merge files into " & sResultFile
+			Exit Sub
+		End If
+
+		Call RBNNotificationShow("Merging rasters", "The " & FormatNumber$(nNumFiles) & " input rasters have been merged into " & sOutputFile, Notify_Info, 5000)
+		Print Time(24) & " Finished merging " & FormatNumber$(nNumFiles) & " files from folder into a MRR file: " & sOutputFile
+	End If
+'	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesInFolderAsMRR")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter HorsbÃ¸ll MÃ¸ller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Function MENUMergeFilesIntoMRR( arrFilesToMerge() As String
+						, ByVal bCreateTABFiles As Logical
+						, ByVal sOutputFile As String
+						) As String
+
+Dim	arrSubsetFileNames(), arrResultFiles() As String,
+	nCount, nFile, nNumFiles, nResultFile As Integer
+
+OnError GoTo ErrorOccured
+
+MENUMergeFilesIntoMRR = ""
+
+	nNumFiles	= Ubound(arrFilesToMerge)
+	Redim arrSubsetFileNames(mnMaxInputFilesInArray)
+
+	Print Time(24) & "    Total number of files: " & FormatNumber$(nNumFiles)
+	If nNumFiles > Ubound(arrSubsetFileNames) Then
+		nCount = 0
+		Print Time(24) & "    Merging in batches of : " & FormatNumber$(Ubound(arrSubsetFileNames)) & " files"
+		For nFile = 1 To nNumFiles
+			nCount	= nCount + 1
+			arrSubsetFileNames(nCount) = arrFilesToMerge(nFile)
+
+			If nCount = Ubound(arrSubsetFileNames) or nFile = nNumFiles Then
+				Print Time(24) & "    Files " & FormatNumber$((nFile - nCount) + 1) & " to " & FormatNumber$(nFile) & " of " & FormatNumber$(nNumFiles)
+				If nCount <> Ubound(arrSubsetFileNames) Then
+					Redim arrSubsetFileNames(nCount)
+				End If
+				If bCreateTABFiles Then
+					'*Creating local tab files for all the raster files
+					Print Time(24) & "    Creating Tab Files"
+					Call ADVCreateTabFilesForRasterFiles(arrFilesToMerge, sCoordsys, TRUE)
+				End If
+
+				nResultFile	= nResultFile + 1
+				Redim arrResultFiles(nResultFile)
+				arrResultFiles(nResultFile)	= PathToDirectory$(sOutputFile) & "__temp_" & Format$(nResultFile, "0000") & "." & MENUGetFileExtensionFromRasterDriverID("MI_MRR")
+				Print Time(24) & "    " & FormatNumber$(nResultFile) & ": Merging " & FormatNumber$(Ubound(arrSubsetFileNames)) & " files into " & arrResultFiles(nResultFile)
+				arrResultFiles(nResultFile) = ADVMergeAsMRR(arrFilesToMerge, arrResultFiles(nResultFile))
+				If arrResultFiles(nResultFile) = "" Then
+					Print "    Failed merging MRR files into " & arrResultFiles(nResultFile)
+					nResultFile	= nResultFile - 1
+					Redim arrResultFiles(nResultFile)
+				Else
+					If Not FileExists(arrResultFiles(nResultFile)) Then
+						Print "    Failed merging MRR files into " & arrResultFiles(nResultFile)
+						nResultFile	= nResultFile - 1
+						Redim arrResultFiles(nResultFile)
+					End If
+				End If
+
+				Print Time(24) & "    " & FormatNumber$(nResultFile) & ": Merged " & FormatNumber$(Ubound(arrSubsetFileNames)) & " files from folder into a MRR file: " & arrResultFiles(nResultFile)
+				nCount = 0
+			End If
+		Next
+
+		Print Time(24) & "    Merging " & FormatNumber$(Ubound(arrResultFiles)) & " temporary result files into " & sOutputFile
+		sOutputFile = ADVMergeAsMRR(arrResultFiles, sOutputFile)
+		If sOutputFile = "" Then
+			Print "    Failed merging MRR files into " & sOutputFile
+		Else
+			For nFile = 1 To Ubound(arrResultFiles)
+				Call ADVRasterDelete(arrResultFiles(nFile))
+			Next
+		End If
+	Else
+		If bCreateTABFiles Then
+			'*Creating local tab files for all the raster files
+			Print Time(24) & "    Creating Tab Files"
+			Call ADVCreateTabFilesForRasterFiles(arrFilesToMerge, sCoordsys, TRUE)
+		End If
+
+		Print Time(24) & "    Merging " & FormatNumber$(Ubound(arrFilesToMerge)) & " files into : " & sOutputFile
+		sOutputFile = ADVMergeAsMRR(arrFilesToMerge, sOutputFile)
+		If sOutputFile = "" Then
+			Print "    Failed merging MRR files into " & sOutputFile
+			Exit Function
+		Else
+			If Not FileExists(sOutputFile) Then
+				Print "    Failed merging MRR files into " & sOutputFile
+			End If
+		End If
+	End If
+
+	Print Time(24) & "    Finished merging " & FormatNumber$(nNumFiles) & " files from folder into a MRR file: " & sOutputFile
+	MENUMergeFilesIntoMRR = sOutputFile
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUMergeFilesIntoMRR")
+	Call ERRShow()
+
+End Function
+
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes Software
+'Parameters:
+'
+'**********************************************************************************************''
 Sub MENUMergeFilesInFoldersASCMRR
 
 Dim	sMergedFile, sMainFolder, sFolder, arrFolders(), arrFileNames(), sResultFile, sCoordsys As String,
@@ -391,7 +817,7 @@ Dim	sMergedFile, sMainFolder, sFolder, arrFolders(), arrFileNames(), sResultFile
 
 OnError GoTo ErrorOccured
 
-	sMainFolder = FILEBrowseForFolder("Select folder with folders with raster/grids to merge", msDefaultPath)
+	sMainFolder = FILEBrowseForFolder("Select folder with folders with raster/grids to merge", msDefaultInputPath)
 	If sMainFolder = "" Then
 		Exit Sub
 	End If
@@ -452,7 +878,7 @@ Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile As String,
 
 OnError GoTo ErrorOccured
 
-	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultInputPath)
 	If sFolder = "" Then
 		Exit Sub
 	End If
@@ -460,7 +886,7 @@ OnError GoTo ErrorOccured
 	nNumFolders = STRINGSplit(sFolder, "\", arrFolders)
 
 	'***Name the resulting file as the folderfollowed by " 10 m", " 20 m", "60 m"
-	sMergedFile = FileSaveAsDlg(sFolder, arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID), "Select path and name of merged raster file...")
+	sMergedFile = FileSaveAsDlg(IIF(msDefaultOutputPath="", sFolder, msDefaultOutputPath), arrFolders(nNumFolders), MENUGetFileExtensionFromRasterDriverID(msOutputRasterDriverID), "Select path and name of merged raster file...")
 	If sMergedFile = "" Then
 		Exit Sub
 	End If
@@ -505,7 +931,7 @@ Dim	sMergedFile, sFolder, arrFolders(), arrFileNames(), sResultFile, sFileSearch
 
 OnError GoTo ErrorOccured
 
-	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultPath)
+	sFolder = FILEBrowseForFolder("Select folder with raster/grids to merge", msDefaultInputPath)
 	If sFolder = "" Then
 		Exit Sub
 	End If
@@ -569,7 +995,7 @@ Dim	fCellArea As Float,
 
 OnError GoTo ErrorOccured
 
-	sRasterFile	= FileOpenDlg(msDefaultPath, "", "MRR", "Select Raster to calculate area for...")
+	sRasterFile	= FileOpenDlg(msDefaultInputPath, "", "MRR", "Select Raster to calculate area for...")
 	If sRasterFile = "" Then
 		Exit Sub
 	End If
@@ -596,7 +1022,7 @@ Dim	sInputFilePath, sOutputFilePath As String
 
 OnError GoTo ErrorOccured
 
-	sInputFilePath	= FileOpenDlg(msDefaultPath, "", "MRR", "Select Raster to calculate area for...")
+	sInputFilePath	= FileOpenDlg(msDefaultInputPath, "", "MRR", "Select Raster to calculate area for...")
 	If sInputFilePath = "" Then
 		Exit Sub
 	End If
@@ -633,7 +1059,7 @@ Dim	bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNu
 
 OnError GoTo ErrorOccured
 
-	sFile 	= FileOpenDlg(msDefaultPath, "", "*.*", "Select a single grid file in the folder you want to use...")
+	sFile 	= FileOpenDlg(msDefaultInputPath, "", "*.*", "Select a single grid file in the folder you want to use...")
 	If sFile = "" Then
 		Exit Sub
 	End If
@@ -728,8 +1154,8 @@ Dim	bMinimumValue, bMaximumValue, bAverageValue, bMedianValue, bNumCells, bNumNu
 
 OnError GoTo ErrorOccured
 
-	sInputRasterFile 	= FileOpenDlg(msDefaultPath, "", "*.*", "Select a single grid file in the folder you want to use...")
-'	sInputRasterFile 	= FileOpenDlg(msDefaultPath, "", "*.*", "Select grid file you want to use for inspection...")
+	sInputRasterFile 	= FileOpenDlg(msDefaultInputPath, "", "*.*", "Select a single grid file in the folder you want to use...")
+'	sInputRasterFile 	= FileOpenDlg(msDefaultInputPath, "", "*.*", "Select grid file you want to use for inspection...")
 	If sInputRasterFile = "" Then
 		Exit Sub
 	End If
@@ -816,6 +1242,322 @@ OnError GoTo ErrorOccured
 '-------------------------
 ErrorOccured:
 	Call ERRCreate(Err(), Error$(), "MENURegionStatisticsBands")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUStampFixedGridSizeCSV
+
+Dim	sTab, sInputCSVFile, sInputTabFile, sOutputGridFile, sGridFileType As String,
+	fOriginX, fOriginY, fMinX, fMinY, fMaxX, fMaxY, fMinDistance, fValue1, fValue2  As Float,
+	nNumColumnsX, nNumRowsY As Integer
+
+OnError GoTo ErrorOccured
+
+	sInputCSVFile	= FileOpenDlg("", "", "CSV", "Select CSV File as input file...")
+	If sInputCSVFile = "" Then
+		Exit Sub
+	End If
+
+	sGridFileType		= MENUGetFileExtensionFromRasterDriverID("MI_BandInterleaved_BIL")
+'	sOutputGridFile	= PathToDirectory$(sInputTabFile) & "Test." & sGridFileType
+	sOutputGridFile	= FileSaveAsDlg(PathToDirectory$(sInputCSVFile), Left$(PathToFileName$(sInputCSVFile), Len(PathToFileName$(sInputCSVFile)) - 4), sGridFileType, "Select Raster Grid File (" & sGridFileType & ") as output file...")
+	If sOutputGridFile = "" Then
+		Exit Sub
+	End If
+
+	sInputTabFile	= TempFileName$("")
+	Register Table sInputCSVFile
+		TYPE ASCII
+		Delimiter 44
+		Titles
+		Charset "WindowsLatin1"
+		Into sInputTabFile
+	Open Table sInputTabFile Hide
+	sTab = PathToTableName$(sInputTabFile)
+	Commit Table sTab As PathToDirectory$(sInputTabFile) & "_convertInput.TAB"
+	Close Table sTab
+	sInputTabFile	= PathToDirectory$(sInputTabFile) & "_convertInput.TAB"
+	Open Table sInputTabFile
+	sTab = PathToTableName$(sInputTabFile)
+
+	Create Map For sTab
+		CoordSys Earth Projection 1, 104
+	Set Table sTab FastEdit On Undo Off
+	Update sTab
+		Set Obj = CreatePoint(LONGITUDE, LATITUDE)
+	Commit Table sTab
+	Set Table sTab Undo On
+
+	Set CoordSys Table sTab
+	fMinX		= TableInfo(sTab, TAB_INFO_MINX)
+	fMinY		= TableInfo(sTab, TAB_INFO_MINY)
+	fMaxX		= TableInfo(stab, TAB_INFO_MAXX)
+	fMaxY		= TableInfo(stab, TAB_INFO_MAXY)
+
+	Print Time(24) & " Finding distance between Logitude values"
+	Select LONGITUDE
+		From sTab
+		Order By LONGITUDE
+		Group By LONGITUDE
+		Into __MIN_DIST NoSelect
+
+	fMinDistance	= 2.00
+	Fetch First From __MIN_DIST
+	fValue1 = __MIN_DIST.LONGITUDE
+	Fetch Next From __MIN_DIST
+	Do Until EOT(__MIN_DIST)
+		fValue2  = __MIN_DIST.LONGITUDE
+		If fMinDistance > (fValue2 - fValue1) Then
+			fMinDistance = (fValue2 - fValue1)
+			'Print "Minimum LONGITUDE distance: " & Format$(fMinDistance, "#.##########")
+		End If
+		fValue1 = fValue2
+		Fetch Next From __MIN_DIST
+	Loop
+	mfGridSizeX	= fMinDistance
+	Close Table __MIN_DIST
+
+	Print Time(24) & " Finding distance between Latitude values"
+	Select LATITUDE
+		From sTab
+		Order By LATITUDE
+		Group By LATITUDE
+		Into __MIN_DIST NoSelect
+
+	fMinDistance	= 2.00
+	Fetch First From __MIN_DIST
+	fValue1 = __MIN_DIST.LATITUDE
+	Fetch Next From __MIN_DIST
+
+	Do Until EOT(__MIN_DIST)
+		fValue2  = __MIN_DIST.LATITUDE
+		If fMinDistance > (fValue2 - fValue1) Then
+			fMinDistance = (fValue2 - fValue1)
+			'Print "Minimum LATITUDE distance: " & Format$(fMinDistance, "#.##########")
+		End If
+		fValue1 = fValue2
+		Fetch Next From __MIN_DIST
+	Loop
+	mfGridSizeY	= fMinDistance
+	Close Table __MIN_DIST
+
+	fOriginX		= fMinX - (mfGridSizeX/2)
+	fOriginY		= fMinY - (mfGridSizeY/2)
+	nNumColumnsX	= (fMaxX - fMinX) / mfGridSizeX
+	nNumRowsY		= (fMaxY - fMinY) / mfGridSizeY
+
+	Print "Data Area: Min X: " & Format$(fMinX, "#.######") & " Min Y: " & Format$(fMinY, "#.######")
+	Print "Data Area: Max X: " & Format$(fMaxX, "#.######") & " Max Y: " & Format$(fMaxY, "#.######")
+	Print "Difference X: " & Format$((fMaxX - fMinX), "#.######")
+	Print "Difference Y: " & Format$((fMaxY - fMinY), "#.######")
+	Print "Grid Origin X: " & Format$((fOriginX), "#.########")
+	Print "Grid Origin Y: " & Format$((fOriginY), "#.########")
+	Print "Cell Size X: " & Format$((mfGridSizeX), "#.########")
+	Print "Cell Size Y: " & Format$((mfGridSizeY), "#.########")
+	Print "Grid Columns X: " & FormatNumber$(nNumColumnsX)
+	Print "Grid Rows Y: " & FormatNumber$(nNumRowsY)
+
+	Call ADVStampFixedGridSize(sInputTabFile, "CoordSys Earth Projection 1, 104", sOutputGridFile, "MI_BandInterleaved_BIL", fOriginX, fOriginY, mfGridSizeX, mfGridSizeY, nNumColumnsX, nNumRowsY, 2)
+
+	Open Table sOutputGridFile
+	Map From PathToTableName$(sOutputGridFile)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUStampFixedGridSizeCSV")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUStampFixedGridSizeTAB
+
+Dim	sTab, sInputTabFile, sOutputGridFile, sGridFileType As String,
+	fOriginX, fOriginY, fMinX, fMinY, fMaxX, fMaxY, fMinDistance, fValue1, fValue2  As Float,
+	nNumColumnsX, nNumRowsY As Integer
+
+OnError GoTo ErrorOccured
+
+	sInputTabFile	= FileOpenDlg("", "", "TAB", "Select TAB File as input file...")
+	If sInputTabFile = "" Then
+		Exit Sub
+	End If
+
+	sGridFileType		= MENUGetFileExtensionFromRasterDriverID("MI_MRR")
+'	sOutputGridFile	= PathToDirectory$(sInputTabFile) & "Test." & sGridFileType
+	sOutputGridFile	= FileSaveAsDlg(PathToDirectory$(sInputTabFile), Left$(PathToFileName$(sInputTabFile), Len(PathToFileName$(sInputTabFile)) - 4), sGridFileType, "Select Raster Grid File (" & sGridFileType & ") as output file...")
+	If sOutputGridFile = "" Then
+		Exit Sub
+	End If
+
+	Open Table sInputTabFile
+	sTab = PathToTableName$(sInputTabFile)
+
+	Set CoordSys Table sTab
+	fMinX		= TableInfo(sTab, TAB_INFO_MINX)
+	fMinY		= TableInfo(sTab, TAB_INFO_MINY)
+	fMaxX		= TableInfo(stab, TAB_INFO_MAXX)
+	fMaxY		= TableInfo(stab, TAB_INFO_MAXY)
+
+'	Print Time(24) & " Finding distance between Logitude values"
+'	Select LONGITUDE
+'		From sTab
+'		Order By LONGITUDE
+'		Group By LONGITUDE
+'		Into __MIN_DIST NoSelect
+'
+'	fMinDistance	= 2.00
+'	Fetch First From __MIN_DIST
+'	fValue1 = __MIN_DIST.LONGITUDE
+'	Fetch Next From __MIN_DIST
+'	Do Until EOT(__MIN_DIST)
+'		fValue2  = __MIN_DIST.LONGITUDE
+'		If fMinDistance > (fValue2 - fValue1) Then
+'			fMinDistance = (fValue2 - fValue1)
+'			'Print "Minimum LONGITUDE distance: " & Format$(fMinDistance, "#.##########")
+'		End If
+'		fValue1 = fValue2
+'		Fetch Next From __MIN_DIST
+'	Loop
+'	mfGridSizeX	= fMinDistance
+'	Close Table __MIN_DIST
+'
+'	Print Time(24) & " Finding distance between Latitude values"
+'	Select LATITUDE
+'		From sTab
+'		Order By LATITUDE
+'		Group By LATITUDE
+'		Into __MIN_DIST NoSelect
+'
+'	fMinDistance	= 2.00
+'	Fetch First From __MIN_DIST
+'	fValue1 = __MIN_DIST.LATITUDE
+'	Fetch Next From __MIN_DIST
+'
+'	Do Until EOT(__MIN_DIST)
+'		fValue2  = __MIN_DIST.LATITUDE
+'		If fMinDistance > (fValue2 - fValue1) Then
+'			fMinDistance = (fValue2 - fValue1)
+'			'Print "Minimum LATITUDE distance: " & Format$(fMinDistance, "#.##########")
+'		End If
+'		fValue1 = fValue2
+'		Fetch Next From __MIN_DIST
+'	Loop
+'	mfGridSizeY	= fMinDistance
+'	Close Table __MIN_DIST
+
+	If mfGridSizeX = 0 Then
+		mfGridSizeX = 30.0 'meters
+	End If
+
+	mfGridSizeY	= mfGridSizeX
+	fOriginX		= fMinX - (mfGridSizeX/2)
+	fOriginY		= fMinY - (mfGridSizeY/2)
+	nNumColumnsX	= (fMaxX - fMinX) / mfGridSizeX
+	nNumRowsY		= (fMaxY - fMinY) / mfGridSizeY
+
+	Print "Data Area: Min X: " & Format$(fMinX, "#.######") & " Min Y: " & Format$(fMinY, "#.######")
+	Print "Data Area: Max X: " & Format$(fMaxX, "#.######") & " Max Y: " & Format$(fMaxY, "#.######")
+	Print "Difference X: " & Format$((fMaxX - fMinX), "#.######")
+	Print "Difference Y: " & Format$((fMaxY - fMinY), "#.######")
+	Print "Grid Origin X: " & Format$((fOriginX), "#.########")
+	Print "Grid Origin Y: " & Format$((fOriginY), "#.########")
+	Print "Cell Size X: " & Format$((mfGridSizeX), "#.########")
+	Print "Cell Size Y: " & Format$((mfGridSizeY), "#.########")
+	Print "Grid Columns X: " & FormatNumber$(nNumColumnsX)
+	Print "Grid Rows Y: " & FormatNumber$(nNumRowsY)
+
+	Call ADVStampFixedGridSize(sInputTabFile, TableInfo(sTab, TAB_INFO_COORDSYS_CLAUSE_WITHOUT_BOUNDS), sOutputGridFile, "MI_MRR", fOriginX, fOriginY, mfGridSizeX, mfGridSizeY, nNumColumnsX, nNumRowsY, 3)
+
+	Open Table sOutputGridFile
+	Map From PathToTableName$(sOutputGridFile)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUStampFixedGridSizeTAB")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUSetFixedGridSize(ByVal fGridSizeX As Float, ByVal fGridSizeY As Float)
+
+OnError GoTo ErrorOccured
+
+	mfGridSizeX	= fGridSizeX
+	mfGridSizeY	= fGridSizeY
+
+	Print "Grid Size, X: " & Format$(mfGridSizeX, "#.########") & " Y: " & Format$(mfGridSizeY, "#.########")
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUSetFixedGridSize")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUExportRasterFileToASCII
+
+Dim	sRasterFile, sTextFile As String
+
+OnError GoTo ErrorOccured
+
+	sRasterFile	= FileOpenDlg("", "", "BIL", "Select Raster File as input file...")
+	If sRasterFile = "" Then
+		Exit Sub
+	End If
+
+	sTextFile	= FileSaveAsDlg(PathToDirectory$(sRasterFile), Left$(PathToFileName$(sRasterFile), Len(PathToFileName$(sRasterFile)) - 4), "csv", "Select name and location for output CSV file...")
+	If sTextFile = "" Then
+		Exit Sub
+	End If
+
+	Call ADVExportToASCII(sRasterFile, sTextFile)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUExportRasterFileToASCII")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENURunRasterProcessorUI
+
+OnError GoTo ErrorOccured
+
+	Call ADVRunRasterProcessorUI()
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENURunRasterProcessorUI")
 	Call ERRShow()
 
 End Sub

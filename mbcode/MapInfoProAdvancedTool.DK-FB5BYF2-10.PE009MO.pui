@@ -1,21 +1,29 @@
 [Open Files]
 Active File Display Mode=1
-Active File Index=0
-Open File Line0=29669
+Active File Index=4
+Open File Line0=35348
 Open File Line1=0
-Open File Line2=2688
-Open File Pos0=31145
+Open File Line2=4364
+Open File Line3=27262
+Open File Line4=2324
+Open File Pos0=35094
 Open File Pos1=405
-Open File Pos2=3679
-Open File Window Pos0=0,1,-1,-1,-1,-1,3,31,2290,1158
-Open File Window Pos1=0,1,-1,-1,-1,-1,3,31,2290,1158
-Open File Window Pos2=0,1,-1,-1,-1,-1,3,31,2290,1158
+Open File Pos2=333
+Open File Pos3=2
+Open File Pos4=2754
+Open File Window Pos0=0,1,-1,-1,-1,-1,3,31,2230,979
+Open File Window Pos1=0,1,-1,-1,-1,-1,3,31,2230,979
+Open File Window Pos2=0,1,-1,-1,-1,-1,3,31,2230,979
+Open File Window Pos3=0,1,-1,-1,-1,-1,3,31,2230,979
+Open File Window Pos4=0,1,-1,-1,-1,-1,3,31,2230,979
 Open File0=D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\mbcode\MapInfoProAdvancedTool.mb
 Open File1=D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\mbcode\MapInfoProAdvancedTool.mbp
 Open File2=D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\mbcode\RasterTools.def
-Open File3=
+Open File3=C:\MapInfo\Pro x64\19.0\Raster\Documentation\API\Sample Code\MapInfo.RasterEngine.IO.Sample.cs
+Open File4=C:\MapInfo\Pro x64\19.0\Raster\Documentation\API\Sample Code\MapInfo.RasterEngine.Processing.Samples.cs
+Open File5=
 Remember Files=1
 
 [Project Information]
-Project Start=E107040001000A000A003A000600000041
-Working Time=842001
+	Project Start=E107040001000A000A003A000600000041
+	Working Time=1821194

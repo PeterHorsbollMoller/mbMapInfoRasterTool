@@ -8,4 +8,14 @@ D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdv
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.pdb
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\MapInfoProAdvancedTool.dll
 D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\MapInfoProAdvancedTool.pdb
-D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csprojResolveAssemblyReference.cache
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csproj.CopyComplete
+D:\Dropbox (Horsboll-Moller)\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csprojAssemblyReference.cache
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csproj.AssemblyReference.cache
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csproj.CoreCompileInputs.cache
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.dll
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.pdb
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\MapInfoProAdvancedTool.dll
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\MapInfoProAdvancedTool.pdb
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\cscode\MapInfoProAdvancedTool\obj\Debug\MapInfoProAdvancedTool.csproj.CopyComplete
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\MapInfoRasterTool\MapInfoProAdvancedTool.dll
+C:\Horsboll-Moller Dropbox\Peter Horsbøll Møller\3. MB_Kode\mbMapInfoRasterTool\MapInfoRasterTool\MapInfoProAdvancedTool.pdb

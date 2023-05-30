@@ -1,5 +1,5 @@
 [LINK]
-Application=..\MapInfoRasterTool.mbx
+Application=..\MapInfoRasterTool\MapInfoRasterTool.mbx
 Module=Library\ARRAYLib.mbo
 Module=Library\CONFIGFILELib.mbo
 Module=Library\DEBUGLib.mbo

@@ -97,3 +97,5 @@ Declare Function OBJCombineFromTable(	  ByVal sTab As String
 								, ByVal sCol As String
 								, ByVal sID As String
 								) As Object
+
+

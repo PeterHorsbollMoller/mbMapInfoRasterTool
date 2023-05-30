@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MapInfoProAdvancedTool</RootNamespace>
     <AssemblyName>MapInfoProAdvancedTool</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\</OutputPath>
+    <OutputPath>..\..\MapInfoRasterTool\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -32,21 +32,33 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MapInfo.RasterEngine.Common, Version=2.0.2.1080, Culture=neutral, PublicKeyToken=6e023577bd41d5d6, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\MapInfo\Pro x64\16.0 EN\Raster\MapInfo.RasterEngine.Common.dll</HintPath>
+    <Reference Include="MapInfo.Events">
+      <HintPath>..\..\..\..\..\..\MapInfo\Pro\v21.1\MapInfo.Events.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="MapInfo.RasterEngine.IO, Version=2.0.2.1080, Culture=neutral, PublicKeyToken=6e023577bd41d5d6, processorArchitecture=AMD64">
+    <Reference Include="MapInfo.RasterEngine.Common, Version=4.0.4.1189, Culture=neutral, PublicKeyToken=6e023577bd41d5d6, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\MapInfo\Pro x64\16.0 EN\Raster\MapInfo.RasterEngine.IO.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\MapInfo\Pro\v21.1\Raster\MapInfo.RasterEngine.Common.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="MapInfo.RasterEngine.Operations, Version=2.0.2.1080, Culture=neutral, PublicKeyToken=6e023577bd41d5d6, processorArchitecture=AMD64">
+    <Reference Include="MapInfo.RasterEngine.IO, Version=4.0.4.1189, Culture=neutral, PublicKeyToken=6e023577bd41d5d6, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\MapInfo\Pro x64\16.0 EN\Raster\MapInfo.RasterEngine.Operations.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\MapInfo\Pro\v21.1\Raster\MapInfo.RasterEngine.IO.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="MapInfo.RasterEngine.Operations, Version=4.0.4.1189, Culture=neutral, PublicKeyToken=6e023577bd41d5d6, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\MapInfo\Pro\v21.1\Raster\MapInfo.RasterEngine.Operations.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="MapInfo.Types">
+      <HintPath>..\..\..\..\..\..\MapInfo\Pro\v21.1\MapInfo.Types.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -54,8 +66,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IMapInfoProAddIn.cs" />
+    <Compile Include="MapInfoProAddInBase.cs" />
     <Compile Include="RasterTools.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
